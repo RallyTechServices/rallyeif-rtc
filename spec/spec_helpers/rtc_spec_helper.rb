@@ -1,0 +1,109 @@
+# Copyright 2001-2014 Rally Software Development Corp. All Rights Reserved.
+require File.dirname(__FILE__) + '/spec_helper'
+if !File.exist?(File.dirname(__FILE__) + '/test_configuration_helper.rb')
+  puts
+  puts " You must create a file with your test values at #{File.dirname(__FILE__)}/test_configuration_helper.rb"
+  exit 1
+end
+require File.dirname(__FILE__) + '/test_configuration_helper'
+require 'rallyeif-wrk'
+require File.dirname(__FILE__) + '/../../lib/rallyeif-rtc'
+
+#  rtc_spec_helper.rb
+#
+
+include YetiTestUtils
+
+module RTCSpecHelper
+
+  RTCConnection           = RallyEIF::WRK::RTCConnection          if not defined?(RTCConnection)
+  RecoverableException    = RallyEIF::WRK::RecoverableException   if not defined?(RecoverableException)
+  UnrecoverableException  = RallyEIF::WRK::UnrecoverableException if not defined?(UnrecoverableException)
+  YetiSelector            = RallyEIF::WRK::YetiSelector           if not defined?(YetiSelector)
+  FieldMap                = RallyEIF::WRK::FieldMap               if not defined?(FieldMap)
+  Connector               = RallyEIF::WRK::Connector              if not defined?(Connector)
+  
+  RTC_STATIC_CONFIG = "
+    <config>
+      <RTCConnection>
+        <Url>#{TestConfig::RTC_URL}</Url>
+        <User>#{TestConfig::RTC_USER}</User>
+        <Password>#{TestConfig::RTC_PASSWORD}</Password>
+        <ExternalIDField>#{TestConfig::RTC_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ArtifactType>#{TestConfig::RTC_ARTIFACT_TYPE}</ArtifactType>
+      </RTCConnection>
+    </config>"
+  
+
+  RTC_MISSING_ARTIFACT_CONFIG = "
+    <config>
+      <RTCConnection>
+        <Url>url</Url>
+        <User>user@company.com</User>
+        <Password>Secret</Password>
+        <ExternalIDField>#{TestConfig::RTC_EXTERNAL_ID_FIELD}</ExternalIDField>
+      </RTCConnection>
+    </config>"
+  
+  RTC_MISSING_URL_CONFIG = "
+    <config>
+      <RTCConnection>
+        <User>user@company.com</User>
+        <Password>Secret</Password>
+        <ExternalIDField>#{TestConfig::RTC_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ArtifactType>#{TestConfig::RTC_ARTIFACT_TYPE}</ArtifactType>
+      </RTCConnection>
+    </config>"
+  
+  RTC_EXTERNAL_FIELDS_CONFIG = "
+    <config>
+      <RTCConnection>
+        <Url>#{TestConfig::RTC_URL}</Url>
+        <User>#{TestConfig::RTC_USER}</User>
+        <Password>#{TestConfig::RTC_PASSWORD}</Password>
+        <IDField>#{TestConfig::RTC_ID_FIELD}</IDField>
+        <ExternalIDField>#{TestConfig::RTC_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ExternalEndUserIDField>#{TestConfig::RTC_EXTERNAL_EU_ID_FIELD}</ExternalEndUserIDField>
+        <CrosslinkUrlField>#{TestConfig::RTC_CROSSLINK_FIELD}</CrosslinkUrlField>
+        <ArtifactType>#{TestConfig::RTC_ARTIFACT_TYPE}</ArtifactType>
+      </RTCConnection>
+    </config>"
+      
+  def RTC_connect(config_file)
+    root = YetiTestUtils::load_xml(config_file).root
+    connection = RTCConnection.new(root)
+    connection.connect()
+    return connection
+  end
+
+  def rally_connect(config_file)
+    root = YetiTestUtils::load_xml(config_file).root
+    connection = RallyEIF::WRK::RallyConnection.new(root)
+    connection.connect()
+    return connection
+  end
+  
+  def create_RTC_artifact(connection, extra_fields = nil)
+    connection.RTC.materialize("User")
+    current_user = User.find_by_username(connection.user)
+    
+    name = 'Time-' + Time.now.strftime("%Y%m%d%H%M%S") + '-' + Time.now.usec.to_s
+    fields            = {}
+    fields["Subject"] = name
+    fields["OwnerId"] = current_user["Id"]
+    fields["Origin"]  = "Web"
+      
+    # Code around bug in SF... whereby boolean fields require a value
+    bools = connection.boolean_fields
+    bools.each do |field|
+      fields[field] = false
+    end
+      
+    if !extra_fields.nil?
+      fields.merge!(extra_fields)
+    end
+    item = connection.create(fields)
+    return [item, fields['Subject']]
+  end
+  
+end

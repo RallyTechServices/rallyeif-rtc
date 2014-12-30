@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<config>
+    <RallyConnection>
+      <Url>rally1.rallydev.com</Url>
+      <WorkspaceName>My WS</WorkspaceName>
+      <Projects>
+        <Project>My Project</Project>
+      </Projects>
+      <User>person@place.com</User>
+      <Password>secret</Password>
+      <ArtifactType>Defect</ArtifactType>
+      <ExternalIDField>ExternalID</ExternalIDField>
+    </RallyConnection>
+
+    <RTCConnection>
+      <Url>TBD</Url>
+      <User>username</User>
+      <Password>secret</Password>
+      <ArtifactType>TBD</ArtifactType>
+      <ExternalIDField>RallyID</ExternalIDField>
+   </RTCConnection>
+
+   <Connector>
+    <FieldMapping>
+      <Field><Rally>Name</Rally><Other>Subject</Other></Field>
+    </FieldMapping>
+  </Connector>
+  
+  <ConnectorRunner>
+  	<LogLevel>Debug</LogLevel>
+    <Preview>false</Preview>
+    <Services>COPY_RTC_TO_RALLY</Services>
+  </ConnectorRunner>
+</config>
