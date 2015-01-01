@@ -1,5 +1,5 @@
 # Copyright 2001-2014 Rally Software Development Corp. All Rights Reserved.
-
+require 'httpclient'
 require 'rallyeif-wrk'
 
 RecoverableException   = RallyEIF::WRK::RecoverableException if not defined?(RecoverableException)
@@ -22,6 +22,7 @@ module RallyEIF
       def read_config(config)
         super(config)
         @url = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Url")
+        @project_area = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "ProjectArea")
       end
       
       def name()
@@ -66,39 +67,98 @@ module RallyEIF
         RallyLogger.debug(self, "  Connector Version : #{version}")
         RallyLogger.debug(self, "  Artifact Type     : #{artifact_type}")
         RallyLogger.debug(self, "*******************************************************")   
-        
-        begin
-          #@rtc.authenticate :username => @user, :password => @password
-          RallyLogger.debug(self, "After authentication, about to materialize")
-        rescue Databasedotcom::SalesForceError => ex
-          raise UnrecoverableException.new("Cannot authenticate with username '#{@user}'.  \n RTC api returned:#{ex.message}", self)
+          
+        @rtc_http_client = HTTPClient.new
+        @rtc_http_client.protocol_retry_count = 2
+        @rtc_http_client.connect_timeout = 300
+        @rtc_http_client.receive_timeout = 300
+        @rtc_http_client.send_timeout    = 300
+        @rtc_http_client.ssl_config.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        @rtc_http_client.transparent_gzip_decompression = true
+        #@rtc_http_client.debug_dev = STDOUT
+          
+        #passed in proxy setup overrides env level proxy
+        env_proxy = ENV["http_proxy"]   #todo - this will go in the future
+        env_proxy = ENV["rtc_proxy"] if env_proxy.nil?
+        if (!env_proxy.nil?) && (proxy_info.nil?)
+          @rtc_http_client.proxy = env_proxy
         end
+  
+        @find_threads = 4
+
+        auth_url = "https://#{@url}/jts/authenticated/j_security_check"
+        #auth_url = "https://#{@url}/jts/authenticated/identity"
+        
+        RallyLogger.debug(self,"Auth URL: #{auth_url}")
+        begin
+          @cookie = send_login_request(auth_url, { :method => :get }, {'j_username'=>@user,'j_password'=>@password})
+
+          RallyLogger.debug(self, "After authentication")
+        rescue Exception => ex
+          raise UnrecoverableException.new("Could not authenticate with username '#{@user}'.  \n RTC returned:#{ex.message}", self)
+        end
+        
+        @rtc = @rtc_http_client
         
         return @rtc
       end
   
+      def validate_project_area
+        valid_project_area = false
+        RallyLogger.info(self,"Validating existence of Project Area [#{@project_area}]")
+        #url = "https://#{@url}/ccm/rootservices"
+        url = "https://#{@url}/ccm/process/project-areas"
+        args = { :method => :get }
+        begin
+          result = send_request(url, args)
+        rescue Exception => ex
+          raise UnrecoverableException.new("Could not connect to check project area. RTC returned: #{ex.message}",self)
+        end
+        #RallyLogger.debug(self, result)
+        xml_doc = Nokogiri::XML(result)
+        # clobber the namespace
+        xml_doc.remove_namespaces!
+        
+        valid_projects = []
+        xml_doc.xpath("//project-area").each do |project|
+          valid_projects.push(project['name'])
+          if ( @project_area == project['name'] ) 
+            valid_project_area = true
+          end
+        end
+        
+        if ( !valid_project_area )
+          RallyLogger.error(self,"Cannot locate project area [#{@project_area}]")
+          RallyLogger.info(self,"Valid project names are #{valid_projects.join(',')}")
+          raise UnrecoverableException.new("Cannot find <ProjectArea> called #{@project_area}",self)
+        end
+        return valid_project_area
+      end
+      
       def validate
+        status_project = validate_project_area
+        
         status_of_all_fields = true  # Assume all fields passed
         
         if !field_exists?(@external_id_field)
           status_of_all_fields = false
-          RallyLogger.error(self, "Salesforce <ExternalIDField> '#{@external_id_field}' does not exist")
+          RallyLogger.error(self, "RTC <ExternalIDField> '#{@external_id_field}' does not exist")
         end
 
         if @id_field
           if !field_exists?(@id_field)
             status_of_all_fields = false
-            RallyLogger.error(self, "Salesforce <IDField> '#{@id_field}' does not exist")
+            RallyLogger.error(self, "RTC <IDField> '#{@id_field}' does not exist")
           end
         end
 
         if @external_end_user_id_field
           if !field_exists?(@external_end_user_id_field)
             status_of_all_fields = false
-            RallyLogger.error(self, "Salesforce <ExternalEndUserIDField> '#{@external_end_user_id_field}' does not exist")
+            RallyLogger.error(self, "RTC <ExternalEndUserIDField> '#{@external_end_user_id_field}' does not exist")
           end
         end
-        
+                
         return status_of_all_fields
       end
       
@@ -111,7 +171,7 @@ module RallyEIF
           RallyLogger.debug(self, " Using SOQL query: #{query}")
           artifact_array = find_by_query(query)
         rescue Exception => ex
-          raise UnrecoverableException.new("Failed search using query: #{query}.  \n SalesForce api returned:#{ex.message}", self)
+          raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
           raise UnrecoverableException.copy(ex,self)
         end
         if artifact_array.length == 0
@@ -134,24 +194,6 @@ module RallyEIF
         return populated_items
       end
       
-      def get_SOQL_where_for_new()
-        query_string = "WHERE #{@external_id_field} = null"
-        if !@soql_copy.nil? && !@soql_copy.empty?
-          query_string = "#{query_string} AND (#{@soql_copy})"
-        end
-        query_string.gsub!(/\"/,"'")
-        return query_string
-      end
-      
-      def get_SOQL_where_for_updates()
-        query_string = "WHERE #{@external_id_field} != ''"
-        if !@update_query.nil? && !@update_query.empty?
-          query_string = "#{query_string} AND #{@update_query}"
-        end
-        query_string.gsub!(/\"/,"'")
-        return query_string
-      end
-      
       def find_new()
         RallyLogger.info(self, "Find New SalesForce #{@artifact_type}s")
         artifact_array = []
@@ -160,7 +202,7 @@ module RallyEIF
           RallyLogger.debug(self, " Using SOQL query: #{query}")
           artifact_array = find_by_query(query)
         rescue Exception => ex
-          raise UnrecoverableException.new("Failed search using query: #{query}.  \n SalesForce api returned:#{ex.message}", self)
+          raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
           raise UnrecoverableException.copy(ex,self)
         end
         
@@ -237,26 +279,82 @@ module RallyEIF
         
         update_internal(artifact, fields)
       end
-      
-      # The following 'soql_copy' method should transpose the query as follows:
-      #     Transform these strings                                  Into these strings
-      #     --------------------------------------------             ------------------
-      #     "Name like SF%"                                          "Name like SF%"
-      #     "Name like WHERE %"                                      "Name like SF%"
-      #     "SELECT Id FROM Case WHERE Name like SF%"                "Name like SF%"
-      #                         "where Name like SF%"                "Name like SF%"
-      #     "select Id FROM Case where Name like SF%"                "Name like SF%"
-      #     "select Id FROM Case where Name like WHERE%"             "Name like WHERE%"
-      #     "where Description like WHERE% and Subject like SELECT%" "Description like WHERE% and Subject like SELECT%"
-      #
-      #     "[Select <field>(s) from <table>] where <field> <condition> <value> [ {and|or} <field> like <value> ...]
-      def get_where_from_soql(soql)
-        # Steps: - strip leading and traling space
-        #        - remove "^Select <> From <> "
-        #        - remove "^Where "
-        new_soql = soql.strip.gsub(/^Select\s+\S+\s+From\s+\S+\s+/i, '').gsub(/^Where\s+/i, '')
-        return new_soql
+ 
+      def send_request(url, args, url_params = {})
+        RallyLogger.debug(self,"Sending request to RTC URL: #{url}")
+        method = args[:method]
+        req_args = {}
+        url_params = {} if url_params.nil?
+        req_args[:query] = url_params if url_params.keys.length > 0
+  
+#        if (args[:method] == :post) || (args[:method] == :put)
+#          text_json = args[:payload].to_json
+#          req_args[:body] = text_json
+#        end
+        req_args[:header] = setup_request_headers(args[:method])
+        
+        begin
+          response = @rtc_http_client.request(method, url, req_args)
+        rescue Exception => ex
+          msg =  "RTC Connection: - rescued exception - #{ex.message} on request to #{url} with params #{url_params}"
+          raise StandardError, msg
+        end
+  
+        #RallyLogger.debug(self,"RTC response was - #{response.inspect}")
+        if response.status_code != 200
+          msg = "RTC Connection - HTTP-#{response.status_code} on request - #{url}."
+          msg << "\nResponse was: #{response.body}"
+          msg << "\nHeaders were: #{response.headers}"
+          raise StandardError, msg
+        end
+  
+        #json_obj = JSON.parse(response.body)   #todo handle null post error
+        return response.body
       end
+
+      def send_login_request(url, args, url_params = {})
+         method = args[:method]
+         req_args = {}
+         url_params = {} if url_params.nil?
+         req_args[:query] = url_params if url_params.keys.length > 0
+   
+         req_args[:header] = setup_request_headers(args[:method])
+         
+         begin
+           response = @rtc_http_client.request(method, url, req_args)
+         rescue Exception => ex
+           msg =  "RTC Connection: - rescued exception - #{ex.message} on request to #{url} with params #{url_params}"
+           raise StandardError, msg
+         end
+   
+         #RallyLogger.debug(self,"RTC response was - #{response.inspect}")
+         if ! response.headers || ! response.headers['Location'] || response.headers['Location'] =~ /authfailed/
+           msg = "RTC Connection - Authentication Failed on request - #{url}."
+           msg << "\nResponse was: #{response.body}"
+           msg << "\nHeaders were: #{response.headers}"
+           raise StandardError, msg
+         end
+   
+         response.headers['Set-Cookie']
+       end
+           
+        def setup_request_headers(http_method)
+          req_headers = {}
+          if (http_method == :post) || (http_method == :put)
+            req_headers["Content-Type"] = "application/json"
+            req_headers["Accept"] = "application/json"
+          end
+          
+          auth = 'Basic ' + Base64.encode64( "#{@user}:#{@password}" ).chomp
+          req_headers['Authorization'] = auth
+             
+          req_headers
+        end
+    
+        def set_client_user(base_url, user, password)
+          @rtc_http_client.set_auth(base_url, user, password)
+          @rtc_http_client.www_auth.basic_auth.challenge(base_url)  #force httpclient to put basic on first req to rally
+        end
 
     end
   end

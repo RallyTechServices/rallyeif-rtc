@@ -29,18 +29,30 @@ module RTCSpecHelper
         <Url>#{TestConfig::RTC_URL}</Url>
         <User>#{TestConfig::RTC_USER}</User>
         <Password>#{TestConfig::RTC_PASSWORD}</Password>
+        <ProjectArea>#{TestConfig::RTC_PROJECTAREA}</ProjectArea>
         <ExternalIDField>#{TestConfig::RTC_EXTERNAL_ID_FIELD}</ExternalIDField>
         <ArtifactType>#{TestConfig::RTC_ARTIFACT_TYPE}</ArtifactType>
       </RTCConnection>
     </config>"
   
-
+  RTC_MISSING_PROJECT_AREA_CONFIG = "
+    <config>
+      <RTCConnection>
+        <Url>#{TestConfig::RTC_URL}</Url>
+        <User>#{TestConfig::RTC_USER}</User>
+        <Password>#{TestConfig::RTC_PASSWORD}</Password>
+        <ExternalIDField>#{TestConfig::RTC_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ArtifactType>#{TestConfig::RTC_ARTIFACT_TYPE}</ArtifactType>
+      </RTCConnection>
+    </config>"
+    
   RTC_MISSING_ARTIFACT_CONFIG = "
     <config>
       <RTCConnection>
         <Url>url</Url>
         <User>user@company.com</User>
         <Password>Secret</Password>
+        <ProjectArea>#{TestConfig::RTC_PROJECTAREA}</ProjectArea>
         <ExternalIDField>#{TestConfig::RTC_EXTERNAL_ID_FIELD}</ExternalIDField>
       </RTCConnection>
     </config>"
@@ -51,6 +63,7 @@ module RTCSpecHelper
         <User>user@company.com</User>
         <Password>Secret</Password>
         <ExternalIDField>#{TestConfig::RTC_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ProjectArea>#{TestConfig::RTC_PROJECTAREA}</ProjectArea>
         <ArtifactType>#{TestConfig::RTC_ARTIFACT_TYPE}</ArtifactType>
       </RTCConnection>
     </config>"
@@ -62,6 +75,7 @@ module RTCSpecHelper
         <User>#{TestConfig::RTC_USER}</User>
         <Password>#{TestConfig::RTC_PASSWORD}</Password>
         <IDField>#{TestConfig::RTC_ID_FIELD}</IDField>
+        <ProjectArea>#{TestConfig::RTC_PROJECTAREA}</ProjectArea>
         <ExternalIDField>#{TestConfig::RTC_EXTERNAL_ID_FIELD}</ExternalIDField>
         <ExternalEndUserIDField>#{TestConfig::RTC_EXTERNAL_EU_ID_FIELD}</ExternalEndUserIDField>
         <CrosslinkUrlField>#{TestConfig::RTC_CROSSLINK_FIELD}</CrosslinkUrlField>
@@ -69,6 +83,12 @@ module RTCSpecHelper
       </RTCConnection>
     </config>"
       
+  def getRTCConnection(config_file)
+    root = YetiTestUtils::load_xml(config_file).root
+    connection = RTCConnection.new(root)
+    return connection
+  end
+  
   def RTC_connect(config_file)
     root = YetiTestUtils::load_xml(config_file).root
     connection = RTCConnection.new(root)

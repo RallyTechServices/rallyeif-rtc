@@ -31,6 +31,7 @@ module TestConfig
   RTC_URL      = "na16.salesforce.com"
   RTC_USER     = ""
   RTC_PASSWORD = ""
+  RTC_PROJECTAREA = ""
   
   # 
   RTC_EXTERNAL_ID_FIELD    = "RallyObjectID__c"

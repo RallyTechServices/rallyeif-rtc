@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://github.com/RallyTechServices/rallyeif-rtc"
   spec.license       = "MIT"
 
-  all_files          = `git ls-files`.split($/)
+  all_files          = `dir`.split($/)
   spec.executables   = all_files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.files         = []
   exclusions         = %w(spec test features coverage pkg .gitignore Rakefile)

@@ -1,8 +1,6 @@
 require 'bundler/gem_tasks'
-require 'ci/reporter/rake/rspec'
 require 'rspec/core/rake_task'
 require 'erb'
-require 'rubygems/commands/inabox_command'
 
 RSpec::Core::RakeTask.new(:spec)
 
