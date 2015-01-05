@@ -32,12 +32,13 @@ module TestConfig
   RTC_USER     = ""
   RTC_PASSWORD = ""
   RTC_PROJECTAREA = ""
+  RTC_PROJECTAREA_ID = "" # the internal ID of the project area (looks like "_asES3Easdf"
   
   # 
-  RTC_EXTERNAL_ID_FIELD    = "RallyObjectID__c"
+  RTC_EXTERNAL_ID_FIELD    = "rtc_cm:features"
   RTC_EXTERNAL_EU_ID_FIELD = "RallyFormattedID__c"
-  RTC_ID_FIELD             = "CaseNumber"
+  RTC_ID_FIELD             = "dc:identifier"
   RTC_CROSSLINK_FIELD      = "RallyURL__c"
-  RTC_ARTIFACT_TYPE        = "Case"
+  RTC_ARTIFACT_TYPE        = "planItem"
 
 end

@@ -103,27 +103,19 @@ module RTCSpecHelper
     return connection
   end
   
-  def create_RTC_artifact(connection, extra_fields = nil)
-    connection.RTC.materialize("User")
-    current_user = User.find_by_username(connection.user)
-    
+  def create_RTC_artifact(connection, extra_fields = nil)    
     name = 'Time-' + Time.now.strftime("%Y%m%d%H%M%S") + '-' + Time.now.usec.to_s
     fields            = {}
-    fields["Subject"] = name
-    fields["OwnerId"] = current_user["Id"]
-    fields["Origin"]  = "Web"
-      
-    # Code around bug in SF... whereby boolean fields require a value
-    bools = connection.boolean_fields
-    bools.each do |field|
-      fields[field] = false
-    end
-      
+    fields["dc:title"] = name
+      # TODO: fix required field to make it generic.  This is required in current environment:
+      fields["rtc_cm:filedAgainst"] = 
+        "https://dev2developer.aetna.com/ccm/resource/itemOid/com.ibm.team.workitem.Category/_NaEYwGxJEeSXtYeYHu-AxQ"
+   
     if !extra_fields.nil?
       fields.merge!(extra_fields)
     end
     item = connection.create(fields)
-    return [item, fields['Subject']]
+    return [item, item['dc:title']]
   end
   
 end

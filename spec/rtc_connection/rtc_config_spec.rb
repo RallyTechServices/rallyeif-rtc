@@ -25,7 +25,7 @@ describe "Given configuration in the RTCConnection section," do
     connection = getRTCConnection(RTCSpecHelper::RTC_EXTERNAL_FIELDS_CONFIG)
     expect(connection.external_end_user_id_field).to eq(TestConfig::RTC_EXTERNAL_EU_ID_FIELD.to_sym)
     expect(connection.external_item_link_field).to eq(TestConfig::RTC_CROSSLINK_FIELD.to_sym)
-    expect(connection.id_field).to eq(TestConfig::RTC_ID_FIELD.to_sym)
+    expect(connection.id_field).to eq(TestConfig::RTC_ID_FIELD)
   end
   
   it "should be OK with missing <ExternalEndUserIDField>, <CrosslinkUrlField> and <IDField>" do
@@ -33,7 +33,7 @@ describe "Given configuration in the RTCConnection section," do
     connection = getRTCConnection(RTCSpecHelper::RTC_STATIC_CONFIG)
     expect(connection.external_end_user_id_field).to be_nil
     expect(connection.external_item_link_field).to be_nil
-    expect(connection.id_field).to be_nil
+    expect( connection.id_field ).to eq("dc:identifier")
   end
     
 end
