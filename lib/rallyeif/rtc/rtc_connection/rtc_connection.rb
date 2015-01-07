@@ -126,16 +126,16 @@ module RallyEIF
           if ( @project_area == project.text ) 
             valid_project_area = true
             parent = project.parent
-            RallyLogger.debug(self,"Parent: #{parent}")
+
             services_list_link = parent.at_xpath('services').attribute('resource')
-            RallyLogger.debug(self,"Services Link = #{services_list_link}")
+           # RallyLogger.debug(self,"Services Link = #{services_list_link}")
             
             begin
               services = send_request(services_list_link, args)
             rescue Exception => ex
               raise UnrecoverableException.new("Could not connect to get RTC services. RTC returned: #{ex.message}",self)
             end
-            RallyLogger.debug(self,"Services List: #{services}")
+            # RallyLogger.debug(self,"Services List: #{services}")
             services_xml = Nokogiri::XML(services)
             # there should be a factory for creating the artifact type items
             #search_query = "//oslc_cm:factory[lower-case(@calm:id) = '#{@artifact_type}']"
@@ -303,17 +303,42 @@ module RallyEIF
       
       # This method will hide the actual call of how to get the id field's value
       def get_id_value(artifact)
-        RallyLogger.debug(self,"#{artifact.attributes}")
-        return artifact["Id"]
+        RallyLogger.debug(self, "Getting ID Value" )
+        return get_value(artifact,@id_field)
+      end
+      
+      def get_value(artifact,field_name)
+        return artifact["#{field_name}"]
       end
     
       def update_internal(artifact, int_work_item)
-        artifact.update_attributes int_work_item
-        return artifact
+        # Get artifact's URL
+        # "rdf:resource"=>"https://dev2developer.aetna.com/ccm/resource/itemName/com.ibm.team.workitem.WorkItem/158326"
+        url = artifact['rdf:resource']
+        if ( url.nil? ) 
+          msg =  "Cannot find URL for artifact to update #{artifact}"
+          RallyLogger.warning(self, msg)
+          raise StandardError, msg
+        end
+        args = {
+          :method=>:put, 
+          :payload=>int_work_item
+        }
+        # to do a partial update, pass the fields that changed in a 
+        #URL="https://localhost:9443/jazz/resource/itemName/com.ibm.team.workitem.WorkItem/821?oslc_cm.properties=dc:type"
+        changed_properties = int_work_item.keys.join(',')
+        begin
+          new_item = JSON.parse(send_request(url + "?oslc_cm.properties=#{changed_properties}", args))
+        rescue RuntimeError => ex
+          RallyLogger.error(self, "Could not update item: #{artifact[@id_field]}")
+          RallyLogger.error(self, "Received error: #{ex}")
+          raise RecoverableException.copy(ex, self)
+        end
+        RallyLogger.debug(self,"Updated #{@artifact_type} #{new_item[@id_field]}")
+        return new_item
       end
       
       def update_external_id_fields(artifact, external_id, end_user_id=nil, item_link=nil)
-
         RallyLogger.debug(self, "Updating RTC item <ExternalIDField> field (#{@external_id_field}) to '#{external_id}'")
         fields = {@external_id_field => external_id} # we should always have one
 
@@ -360,6 +385,7 @@ module RallyEIF
           msg = "RTC Connection - HTTP-#{response.status_code} on request - #{url}."
           msg << "\nResponse was: #{response.body}"
           msg << "\nHeaders were: #{response.headers}"
+          msg << "\nParams were: #{req_args}"
           RallyLogger.error(self, "#{msg}")
           raise StandardError, msg
         end

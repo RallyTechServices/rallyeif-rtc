@@ -7,6 +7,7 @@ RSpec::Core::RakeTask.new(:spec)
 SPOKE_SOURCE_BASE = "lib/rallyeif/salesforce"
 
 task :default => :spec
+# NOTE: to run a single spec: rake spec SPEC=./spec/rtc_connection/test_spec.rb
 
 desc "substitute in jenkins info"
 task :substitute do |t|
