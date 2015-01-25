@@ -33,6 +33,8 @@ module TestConfig
   RTC_PASSWORD = ""
   RTC_PROJECTAREA = ""
   RTC_PROJECTAREA_ID = "" # the internal ID of the project area (looks like "_asES3Easdf"
+  RTC_TEAMAREA = "Care Management"  # just use the last node name when it's a/b/c, use c
+  RTC_TEAMAREA_ID = ""  # the internal id of the team area (looks like "_asES3Easdf"
   
   # 
   RTC_EXTERNAL_ID_FIELD    = "rtc_cm:features"

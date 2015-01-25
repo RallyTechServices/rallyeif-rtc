@@ -101,24 +101,31 @@ module RallyEIF
         
         @rtc = @rtc_http_client
         
+        set_project_area_links
+        
         return @rtc
       end
   
-      def validate_project_area
+      def set_project_area_links
+        RallyLogger.info(self,"Getting Links for Project Area [#{@project_area}]")
         valid_project_area = false
-        RallyLogger.info(self,"Validating existence of Project Area [#{@project_area}]")
+        
         #project_url = "https://#{@url}/ccm/rootservices"
         #project_url = "https://#{@url}/ccm/process/project-areas"
         project_url = "https://#{@url}/ccm/oslc/workitems/catalog"
+                
         args = { :method => :get }
         begin
           result = send_request(project_url, args)
         rescue Exception => ex
           raise UnrecoverableException.new("Could not connect to check project area. RTC returned: #{ex.message}",self)
         end
+        
         xml_doc = Nokogiri::XML(result)
         # clobber the namespace
         xml_doc.remove_namespaces!
+        
+        # RallyLogger.debug(self,"Project List: #{xml_doc}")
         
         valid_projects = []
         xml_doc.xpath("//title").each do |project|
@@ -127,11 +134,12 @@ module RallyEIF
             valid_project_area = true
             parent = project.parent
 
-            services_list_link = parent.at_xpath('services').attribute('resource')
+            @project_area_services_link = parent.at_xpath('services').attribute('resource')
+            @project_area_detail_link =   parent.at_xpath('details').attribute('resource')
            # RallyLogger.debug(self,"Services Link = #{services_list_link}")
             
             begin
-              services = send_request(services_list_link, args)
+              services = send_request(@project_area_services_link, args)
             rescue Exception => ex
               raise UnrecoverableException.new("Could not connect to get RTC services. RTC returned: #{ex.message}",self)
             end
@@ -170,7 +178,6 @@ module RallyEIF
       end
       
       def validate
-        status_project = validate_project_area
         
         status_of_all_fields = true  # Assume all fields passed
         
@@ -196,8 +203,98 @@ module RallyEIF
         return status_of_all_fields
       end
       
+      def find_team_area_id(team_name)
+        RallyLogger.info(self,"Finding Team Area [#{team_name}]")
+
+        if team_name.nil? || team_name.empty?
+          return nil
+        end
+        
+        args = { :method => :get }
+        begin
+          details = send_request(@project_area_detail_link, args )
+        rescue Exception => ex
+          raise UnrecoverableException.new("Could not get ProjectArea details. RTC returned: #{ex.message}",self)
+        end
+        details_xml = Nokogiri::XML(details)
+        details_xml.remove_namespaces!
+
+        # RallyLogger.debug(self,"Details Output: #{details_xml}")
+        
+        team_areas_link = details_xml.at_xpath('//team-areas-url').text
+        RallyLogger.debug(self,"Team Areas Link: #{team_areas_link}")
+        begin
+          team_areas = send_request(team_areas_link, args)
+        rescue Exception => ex
+          raise UnrecoverableException.new("Could not get to TeamAreas link #{team_areas_link}. RTC returned: #{ex.message}",self)
+        end
+        team_areas_xml = Nokogiri::XML(team_areas)
+        team_areas_xml.remove_namespaces!
+        
+        # RallyLogger.debug(self,"Team Areas Output: #{team_areas_xml}")
+               
+        team_area_id = nil
+         
+        team_areas_xml.xpath("//team-area").each do |team_area|
+          # <team-area name="Consumer Business 1.0">
+          #         <url>https://dev2developer.aetna.com/ccm/process/project-areas/_NHtogaDCEeSNq699yfGkFw/team-areas/_IQHyAKDDEeSNq699yfGkFw</url>
+          if ( "#{team_name}".downcase == "#{team_area.attribute('name')}".downcase ) 
+            team_area_id =  team_area.at_xpath('url').text.gsub(/.*\//,"")
+          end
+        end
+        
+        return team_area_id
+      end
+      
+      def find_team_area_name(team_id)
+        RallyLogger.info(self,"Finding Team Area By ID [#{team_id}]")
+  
+        if team_id.nil? || team_id.empty?
+          return nil
+        end
+        
+        team_id.gsub!(/.*\//,"")
+        
+        args = { :method => :get }
+        begin
+          details = send_request(@project_area_detail_link, args )
+        rescue Exception => ex
+          raise UnrecoverableException.new("Could not get ProjectArea details. RTC returned: #{ex.message}",self)
+        end
+        details_xml = Nokogiri::XML(details)
+        details_xml.remove_namespaces!
+  
+        # RallyLogger.debug(self,"Details Output: #{details_xml}")
+        
+        team_areas_link = details_xml.at_xpath('//team-areas-url').text
+        RallyLogger.debug(self,"Team Areas Link: #{team_areas_link}")
+        begin
+          team_areas = send_request(team_areas_link, args)
+        rescue Exception => ex
+          raise UnrecoverableException.new("Could not get to TeamAreas link #{team_areas_link}. RTC returned: #{ex.message}",self)
+        end
+        team_areas_xml = Nokogiri::XML(team_areas)
+        team_areas_xml.remove_namespaces!
+        
+        # RallyLogger.debug(self,"Team Areas Output: #{team_areas_xml}")
+               
+        team_area_name = nil
+         
+        team_areas_xml.xpath("//team-area").each do |team_area|
+          # <team-area name="Consumer Business 1.0">
+          #         <url>https://dev2developer.aetna.com/ccm/process/project-areas/_NHtogaDCEeSNq699yfGkFw/team-areas/_IQHyAKDDEeSNq699yfGkFw</url>
+          if ( "#{team_area.at_xpath('url').text}".include?(team_id) ) 
+            team_area_name =  team_area.attribute('name').to_s
+          end
+        end
+        
+        return team_area_name
+      end
+
+      
       # find_by_external_id is forced from inheritance
       def find_by_external_id(external_id)
+    
         begin
          # query = "dc:modified>=12-01-2014T00:00:00"
           query = "dc:type=\"com.ibm.team.apt.workItemType.story\" and #{@external_id_field}=\"#{external_id}\""  #TODO can we get this from knowing we're doing a plan item?

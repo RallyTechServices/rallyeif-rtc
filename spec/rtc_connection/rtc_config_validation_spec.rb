@@ -26,8 +26,7 @@ describe "Given configuration in the RTCConnection section and logging in," do
                             "Fred",                                                   #4 VALUE   - New value to put into NEWTAG
                             "replace",                                                #5 ACTION  - [before, after, replace, delete]
                             "ProjectArea")                                           #6 REFTAG  - Existing tag in SECTION
-    connection = RTC_connect(fred_project_config)
-    expect{connection.validate}.to raise_error(/Cannot find <ProjectArea>/)
+    expect { RTC_connect(fred_project_config) }.to raise_error(/Cannot find <ProjectArea>/)
   end
   
   it "should reject invalid artifact types" do
@@ -38,7 +37,6 @@ describe "Given configuration in the RTCConnection section and logging in," do
                             "Fred",                                                   #4 VALUE   - New value to put into NEWTAG
                             "replace",                                                #5 ACTION  - [before, after, replace, delete]
                             "ArtifactType")                                           #6 REFTAG  - Existing tag in SECTION
-    connection = RTC_connect(fred_artifact_config)
-    expect { connection.validate }.to raise_error(/Cannot find <ArtifactType>/)
+    expect{ RTC_connect(fred_artifact_config) }.to raise_error(/Cannot find <ArtifactType>/)
   end
 end

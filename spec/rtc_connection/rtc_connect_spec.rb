@@ -25,4 +25,5 @@ describe "Given connection information" do
       
     expect{RTC_connect(config) }.to raise_error(/Could not authenticate/)
   end
+  
 end
