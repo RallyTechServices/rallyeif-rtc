@@ -242,7 +242,7 @@ module RallyEIF
         RallyLogger.info(self, "Find New RTC #{@artifact_type}s")
         artifact_array = []
         begin
-         # query = "dc:modified>=12-01-2014T00:00:00"
+          # query = "dc:type=\"com.ibm.team.apt.workItemType.story\""
           query = "dc:type=\"com.ibm.team.apt.workItemType.story\" and #{@external_id_field}=\"\""  #TODO can we get this from knowing we're doing a plan item?
           RallyLogger.debug(self, " Using query: #{query}")
           artifact_array = find_by_query(query)
@@ -251,24 +251,27 @@ module RallyEIF
           raise UnrecoverableException.copy(ex,self)
         end
         
+        #RallyLogger.debug(self, "Found #{artifact_array}")
         RallyLogger.info(self, "Found #{artifact_array.length} new #{@artifact_type}s in #{name()}.")
         return artifact_array
       end
       
       def find_updates(reference_time)
-        RallyLogger.info(self, "Find Updated SalesForce #{@artifact_type}s since '#{reference_time}' (class=#{reference_time.class})")
+        RallyLogger.info(self, "Find RTC #{@artifact_type}s updated after #{reference_time} ")
+        check_time = "#{reference_time}".gsub(/ /,"T").gsub(/TUTC/,"")
         artifact_array = []
         begin
-          query = "SELECT Id,Subject FROM #{@artifact_type} #{get_SOQL_where_for_updates()}"
-          RallyLogger.debug(self, " Using SOQL query: #{query}")
+         # query = "dc:modified>=12-01-2014T00:00:00"
+          query = "dc:modified>=\"#{check_time}.0Z\" and dc:type=\"com.ibm.team.apt.workItemType.story\" and #{@external_id_field}!=\"\"" 
+          
+          RallyLogger.debug(self, " Using query: #{query}")
           artifact_array = find_by_query(query)
         rescue Exception => ex
-          raise UnrecoverableException.new("Failed search using query: #{query}.  \n SalesForce api returned:#{ex.message}", self)
+          raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
           raise UnrecoverableException.copy(ex,self)
         end
         
         RallyLogger.info(self, "Found #{artifact_array.length} updated #{@artifact_type}s in #{name()}.")
-
         return artifact_array
       end
       

@@ -6,9 +6,9 @@ if !File.exist?(File.dirname(__FILE__) + '/test_configuration_helper.rb')
   exit 1
 end
 require File.dirname(__FILE__) + '/test_configuration_helper'
+
 require 'rallyeif-wrk'
 require File.dirname(__FILE__) + '/../../lib/rallyeif-rtc'
-
 #  rtc_spec_helper.rb
 #
 
