@@ -1,14 +1,14 @@
 ##How to Install: Rally - Rational Team Concert Connector
 
-**25 January 2015**
+**26 January 2015**
 
 ### Overview
 
-The Rally - Rational Team Concert Connector provides single-direction copying and updating of stories from Rational Team Concert (RTC) to Rally.  The connector is a Ruby application that will poll RTC for new and updated records that need to be synchronized with Rally and copy or update teh data from configured fields as appropriate.  The application can be configured to "wake up" and poll on its own or run as a cronjob/scheduled task.
+The Rally - Rational Team Concert Connector provides single-direction copying and updating of stories from Rational Team Concert (RTC) to Rally.  The connector is a Ruby application that will poll RTC for new and updated records that need to be synchronized with Rally and copy or update the data from configured fields as appropriate.  The application can be configured to "wake up" and poll on its own or run as a cronjob/scheduled task.
 
 The connector is configured via an XML file that has extensive settings, the most important of which are covered in the Connector Configuration section below.
 
-When the connector copies an item from the other side into Rally for the first time, both the RTC item and the Rally item will be given the identifier of the item from the other system.  The value in this external ID field is how the connector knows whether to create a new Rally item or update an existing one.  (The connector is transactional; data is not stored on the file system (aside from the configuration file, a timestamp file and the information in the logs.)  It is possible, then to disconnect items from both systems by deleting the value in this field.  If you wish to delete the Rally item, but retain the RTC item, you must clear this field or the connector will report errors while trying to update a non-existent item.
+When the connector copies an item from RTC into Rally for the first time, both the RTC item and the Rally item will be given the identifier of the item from the other system.  The value in this external ID field is how the connector knows whether to create a new Rally item or update an existing one.  (The connector is transactional; data is not stored on the file system (aside from the configuration file, a timestamp file and the information in the logs.)  It is possible, then to disconnect items from both systems by deleting the value in this field.  If you wish to delete the Rally item, but retain the RTC item, you must clear this field n the RTC item, otherwise the connector will report errors while trying to update a non-existent item in Rally.
 
 The copying and updating are run as separate "services" and the configuration file can be configured to do only one or the other or both.  It is possible to make and run multiple configuration files if you want to make different rules for the services.
 
@@ -16,24 +16,28 @@ The copying and updating are run as separate "services" and the configuration fi
 
 #### Environment
 
-  * The connector is a ruby application and requires Ruby 2.0 or greater.  It can run on any operating system that supports ruby.
-  * The connector will require network access to both RTC and to Rally.  Connections with RTC and Rally are made via https, so an RTC client is not required (but would probably help with configuration).
-  * The machine running the connector must have its clock synched with the clock of the RTC server.
+  * The connector is a Ruby application and requires Ruby 2.0 or greater.  It can run on any operating system that supports Ruby.
+  * The connector will require network access to both RTC and Rally.  Connections with RTC and Rally are made via HTTPS, so an RTC client is not required (but would probably help with configuration).
+  * The machine running the connector must have its clock synchronized with the clock of the RTC server.
   
 #### Configuration Settings 
 
   * In RTC, create a custom field to hold the Rally ID.  This field can be a string or an integer.  The Rally ID that will be stored in this "External ID" field will hold the unique Object ID of the Rally item (not the display (or Formatted ID) identifier).  In our test environment, this field was called "rtc_cm:jirakey".  Fields in RTC are presented with namespacing prefixes in the API and the full name is required.
   * In Rally, create a custom field to hold the RTC ID.  This field can be a string or an integer.  When you create a Rally field, the API name for the configuration file will have spaces and special characters removed (so, "External ID" would be "ExternalID" for the configuration file.)
 
-### Gem Installation
+### Ruby and Gem Installation
 
-After installing Ruby (you can verify that ruby is installed and on the path by typing "ruby -v" into a command prompt), a series of gems must also be installed.  The release package should include these files in the "gem" directory.  Expand the zip file and then install the gems by using a command prompt to navigate to the gem directory and then typing "gem install --local *.gem".
+Ruby must be installed and accessible. You can verify that Ruby is installed and on the PATH by typing "ruby -v" into a command prompt.
+
+A series of GEMs must also be installed.  The release package should include these files in the "gem" directory.  Expand the zip file and then install the GEMs by using a command prompt to navigate to the GEM directory and then typing "gem install --local *.gem".
 
   *NOTE*: You can ignore any of the output that starts with 'unable to convert "\x'.
   
 Verify that the connector was installed by running this command in the parent installation directory.  
 
   > ruby ./rally2_rtc_connector.rb --version
+  > --- or is it ---
+  > ruby ./bin/rally2_rtc_connector.rb --version
   
 ### Connector Configuration
 
@@ -44,7 +48,7 @@ The configuration file has four major nodes:
   * *RallyConnection* : This section holds information for connecting to Rally, as well as the Rally field information.
   * *RTCConnection* : This section holds information for connecting to RTC, as well as the RTC field information
   * *Connector* : This is the section that will most often be changed as your needs evolve.  This section has two major subsections:
-    * *FieldMapping* : This section maps each RTC field to the Rally field that will hold the necessary information
+    * *FieldMapping* : This section maps each RTC field to the Rally field that will hold the necessary information.
     * *OtherFieldHandlers* : Field handlers are special snippets of code that can perform transformations on the data coming out of RTC.  Any enumerated field is likely to require a field handler.  
   * *ConnectorRunner* : This section holds information about running the connector, including the logging verbosity level, whether to run in preview mode, and which services to execute
   
@@ -65,7 +69,7 @@ This section holds information for connecting to Rally, as well as the Rally fie
 
   * Url : The web address of the RTC instance.  Do not include "https://".  In development, we used "dev2developer.aetna.com".  
   * User : A user ID to access RTC.
-  * Password : This user's RTC password.  After the connector is executed the first time, it will modify the configuration file to obfuscate the password to look something like "encoded-V-s-G-s-b-H-l-P-T=-". 
+  * Password : This RTC user's password.  After the connector is executed the first time, it will modify the configuration file to obfuscate the password to look something like "encoded-V-s-G-s-b-H-l-P-T=-". 
   * ArtifactType : The type of object to copy from RTC.  This is for future development to allow for other record types to use the same engine.  A story in RTC is called a "planItem" in the API.
   * Project Area : The project area from which to copy data.  Team Areas are associated to Rally projects in the FieldMapping section below.  In development, we used "Next Gen Platform - Vision 2020 - SAFe"
   * ExternalIDField : The name of the custom field created above to hold the ID of the Rally object that gets created.
@@ -82,11 +86,11 @@ Most likely, custom fields will be prefixed by "rtc_cm:".  The RTC Size field ha
 
       <Field><Rally>PlanEstimate</Rally><Other>rtc_cm:com.ibm.team.apt.attribute.complexity</Other></Field>
 
-*Recommendation* : We suggest starting with the minimum system required fields to validate and then building up to the desired set of fields one at a time while configuring, to make troubleshooting easiest.  In addition, we really recommend copying only the fields that are absolutely needed for whatever reporting activities are planned.
+*Recommendation* : We suggest starting with the minimum system required fields to validate and then building up to the desired set of fields, one at a time while configuring, to make troubleshooting easiest.  In addition, we really recommend copying only the fields that are absolutely needed for whatever reporting activities are planned.
 
 ##### OtherFieldHandlers
 
-Fields that require special handling can be further configured in this section.  For fields that are straight strings or numbers, for the most part, the field mapping above is enough.  However, for fields that have a dropdown, RTC presents the data as an enumeration value, so a fieldhandler is required to interpret the data and turn it into something that Rally will recognize.  Field handlers written for this project are available below.  It is possible to write further field handlers using Ruby and drop them into the field handlers folder without modifying the core code base.  
+Fields that require special handling can be further configured in this section.  For fields that are straight strings or numbers, for the most part, the field mapping above is enough.  However, for fields that have a dropdown, RTC presents the data as an enumeration value, so a fieldhandler is required to interpret the data and turn it into something that Rally will recognize.  Field handlers written for this project are available below.  It is possible to write further field handlers using Ruby and drop them into the 'field_handlers' folder without modifying the core code base.  
 
 Fields that require handling still *must* be listed in the FieldMapping section above.  
 
@@ -100,7 +104,7 @@ Only one outer node called <OtherFieldHandlers> is required.  Each of the follow
 
 This section holds information about running the connector.
 
-  * LogLevel : The connector will output to a file called rallylogger.log.  The verbosity levels available are DEBUG, INFO, WARN, ERROR.  
+  * LogLevel : The connector will output to a file called rallylog.log.  The verbosity levels available are DEBUG, INFO, WARN, ERROR.  
   * Preview : A 'true' value will have the connector log into both systems and list out the items that would be copied or updated, but will only do the copying/updating if this is set to 'false.'
   * Services : There are two services available.  They can be listed with a comma seperator. 
     * COPY\_RTC\_TO\_RALLY : this service copies items that are in RTC that have not yet been created in Rally.  (That is, only items in RTC that do not have a value in the External ID field.)
@@ -116,15 +120,12 @@ The connector can be configured to run once and end.  This is the common configu
     
 replacing "my_config_file.xml" with the file you made.  Multiple configuration files can be run on the same line; they'll be executed in order.  (You might do this if you want different fields updated than were copied, for example.)
 
-    > ruby rally2_rtc_connector.rb my_config_file.xml my_other_config_file.xml -1
+    > ruby  rally2_rtc_connector.rb  ConfigFile1.xml  ConfigFile2.xml  -1
 
-When running with a cronjob/scheduled task, make sure that the user executing via the task/job has ruby in the path and can read and write the installation directory (because logs and the xml file are modified by the connector when running).  
+When running with a cronjob/scheduled task, make sure that the user executing via the task/job has Ruby in the path and can read and write the installation directory (because logs, time file, and the xml file are modified by the connector when running).  
 
-**DO NOT** the connector as separate tasks/jobs in the same directory because the connector will always write to the same log files and two processes trying to write to the same file can cause conflict on some platforms (not to mention it'll be harder to read interleaved config files).  When testing/configuring, make sure that the connector isn't also running under some other process/job so that you don't run into confusing log information.
+**DO NOT** Invoke the connector as separate tasks/jobs in the same directory because the connector will always write to the same log files and two processes trying to write to the same file can cause conflict on some platforms (not to mention it'll be harder to read interleaved log files).  When testing/configuring, make sure that the connector isn't also running under some other process/job so that you don't run into confusing log information.
 
 To have the connector decide when to wake up and re-run, pass a number of minutes between runs instead of -1.  The connector will execute and then sleep for that number of minutes.  Do not combine this mechanism with cronjob/scheduled task.
 
     > ruby rally2_rtc_connector.rb my_config_file.xml 15
-
-
-
