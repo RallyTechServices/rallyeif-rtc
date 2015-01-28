@@ -316,9 +316,32 @@ module RallyEIF
         return artifact_array.first
       end
       
+      def get_fetch()
+#        #fetch = "dc:identifier{*},dc:title,rtc_cm:com.ibm.team.apt.attribute.complexity{*},rtc_cm:state{*},rtc_cm:teamArea{*}"
+#
+#        if !@external_id_field.nil?
+#          fetch = "#{fetch},#{@external_id_field}"
+#        end
+#        
+#        if !@external_end_user_id_field.nil?
+#          fetch = "#{fetch},#{@external_end_user_id_field}"
+#        end
+        
+        # TODO: ask for fewer parameters for performance
+        
+        fetch = "*{*}"
+        return fetch
+      end
+      
       def find_by_query(query_string)
+        fetch = get_fetch()
+        
+        parameters = {
+          :"oslc_cm.query"  => query_string,
+          :"oslc_cm.properties" => fetch
+        }
         begin
-          results = send_request(@query_link, { :method => :get, :accept => "application/json" }, { :"oslc_cm.query"  => query_string } )
+          results = send_request(@query_link, { :method => :get, :accept => "application/json" }, parameters )
         rescue Exception => ex
           raise UnrecoverableException.new("Could not execute query. RTC returned: #{ex.message}",self)
         end
@@ -404,7 +427,9 @@ module RallyEIF
       # This method will hide the actual call of how to get the id field's value
       def get_id_value(artifact)
         RallyLogger.debug(self, "Getting ID Value" )
-        return get_value(artifact,@id_field)
+        value = get_value(artifact,@id_field)
+        RallyLogger.debug(self, "ID Value: [#{value}]")
+        return value
       end
       
       def get_value(artifact,field_name)

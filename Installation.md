@@ -97,8 +97,18 @@ Fields that require handling still *must* be listed in the FieldMapping section 
 Only one outer node called <OtherFieldHandlers> is required.  Each of the following can be a node inside.
 
   * RTCComplexityFieldHandler : For the size field, converts the size into a number for Rally.  This handler has a single node called FieldName.  Put the complexity/size field name (rtc_cm:com.ibm.team.apt.attribute.complexity) in here.  
-  * RTCTeamAreaFieldHanlder : For the team area, converts the selected Team Area into a Name.  Assuming that the TeamArea has the same name as a project in Rally, this can be used by Rally to assign to the project. This handler has a single node called FieldName. Put the team area field name (rtc_cm:teamArea) in here.
+  * RTCResourceFieldHandler : For team area and state and other fields that are identified by a link to another list, use this handler to convert to a string (or to some field on the other object).  With state and teamArea, we want the dc:title field, which you put into the ReferencedFieldLookupID field.  (The base field name from the actual story goes into the FieldName node.)
   
+  *NOTE*: When using RTCResourceFieldHandler for TeamArea, the string for the name of the Team Area will be provided and matched automatically by the Rally connection to select a project.  In cases where the string that pops out of this field handler don't match values in Rally, use a further field handler on the Rally side to map (as in the example provided for ScheduleState).
+  
+##### RallyFieldHandlers
+
+It is possible that fields that were handled on the RTC side will still have a value that is not useful for Rally.  These values can be further refined using a Rally field handler.  As an example, a RTC field handler can convert the State to a string, but the string needs to be further mapped to a Rally value.  
+
+  * RallyEnumFieldHandler : For drop-down values in Rally that require a particular set of values that are not necessarily the same as values in RTC, use this handler to provide an array of value mappings.   
+    ** FieldName : contains the name of the RALLY field
+    ** Mappings : provide a series of <Field> nodes that contain a value for the Rally side mapped to a value on the RTC side (using <Other>)
+
 
 #### ConnectorRunner
 

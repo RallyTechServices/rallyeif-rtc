@@ -39,4 +39,11 @@ describe "Given configuration in the RTCConnection section and logging in," do
                             "ArtifactType")                                           #6 REFTAG  - Existing tag in SECTION
     expect{ RTC_connect(fred_artifact_config) }.to raise_error(/Cannot find <ArtifactType>/)
   end
+  
+  it "should generate a reasonable fetch result" do
+    connection = RTC_connect(RTCSpecHelper::RTC_STATIC_CONFIG)
+    connection.validate
+    
+    expect( connection.get_fetch() ).to eq("dc:title,rtc_cm:com.ibm.team.apt.attribute.complexity{*},rtc_cm:state{*},rtc_cm:teamArea{*},#{TestConfig::RTC_EXTERNAL_ID_FIELD}")
+  end
 end
