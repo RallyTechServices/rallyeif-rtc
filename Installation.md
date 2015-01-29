@@ -1,6 +1,6 @@
 ##How to Install: Rally - Rational Team Concert Connector
 
-**26 January 2015**
+**29 January 2015**
 
 ### Overview
 
@@ -36,8 +36,6 @@ A series of GEMs must also be installed.  The release package should include the
 Verify that the connector was installed by running this command in the parent installation directory.  
 
   > ruby ./rally2_rtc_connector.rb --version
-  > --- or is it ---
-  > ruby ./bin/rally2_rtc_connector.rb --version
   
 ### Connector Configuration
 
@@ -98,9 +96,11 @@ Only one outer node called <OtherFieldHandlers> is required.  Each of the follow
 
   * RTCComplexityFieldHandler : For the size field, converts the size into a number for Rally.  This handler has a single node called FieldName.  Put the complexity/size field name (rtc_cm:com.ibm.team.apt.attribute.complexity) in here.  
   * RTCResourceFieldHandler : For team area and state and other fields that are identified by a link to another list, use this handler to convert to a string (or to some field on the other object).  With state and teamArea, we want the dc:title field, which you put into the ReferencedFieldLookupID field.  (The base field name from the actual story goes into the FieldName node.)
+  * RTCLinkFieldHandler : For fields (like parent) that are identified by a link but saved in RTC as an array
   
-  *NOTE*: When using RTCResourceFieldHandler for TeamArea, the string for the name of the Team Area will be provided and matched automatically by the Rally connection to select a project.  In cases where the string that pops out of this field handler don't match values in Rally, use a further field handler on the Rally side to map (as in the example provided for ScheduleState).
-  
+  *NOTES*: 
+  	* When using RTCResourceFieldHandler for TeamArea, the string for the name of the Team Area will be provided and matched automatically by the Rally connection to select a project.  In cases where the string that pops out of this field handler don't match values in Rally, use a further field handler on the Rally side to map (as in the example provided for ScheduleState).
+  	* When Using RTCLinkFieldHandler for Parent/Portfolio Item, if the portfolio item's ObjectID isn't being used -- that is, the value on the parent in RTC shows the Formatted ID of the Rally item, it's necessary to also have a handler on the Rally side to convert the FormattedID into an actual portfolio item by reference, so include that below.
 ##### RallyFieldHandlers
 
 It is possible that fields that were handled on the RTC side will still have a value that is not useful for Rally.  These values can be further refined using a Rally field handler.  As an example, a RTC field handler can convert the State to a string, but the string needs to be further mapped to a Rally value.  
@@ -108,7 +108,9 @@ It is possible that fields that were handled on the RTC side will still have a v
   * RallyEnumFieldHandler : For drop-down values in Rally that require a particular set of values that are not necessarily the same as values in RTC, use this handler to provide an array of value mappings.   
     ** FieldName : contains the name of the RALLY field
     ** Mappings : provide a series of <Field> nodes that contain a value for the Rally side mapped to a value on the RTC side (using <Other>)
-
+  * RallyReferenceFieldHandler : Like the RTCResourceFieldHandler, used to find the referenced object via query on a unique field's value that might be provided by RTC
+    ** FieldName : contains the name of the Rally field that will hold the relationship (e.g., PortfolioItem)
+    ** ReferencedFieldLookupID : the field on the referenced item that can be used for querying, usually FormattedID
 
 #### ConnectorRunner
 

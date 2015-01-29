@@ -2,33 +2,79 @@
 <config>
     <RallyConnection>
       <Url>rally1.rallydev.com</Url>
-      <WorkspaceName>My WS</WorkspaceName>
+      <WorkspaceName>My Workspace</WorkspaceName>
       <Projects>
-        <Project>My Project</Project>
+        <Project>RTC</Project>
       </Projects>
-      <User>person@place.com</User>
-      <Password>secret</Password>
-      <ArtifactType>Defect</ArtifactType>
+      <User>curmudgeon@place.org</User>
+      <Password>aadfasd</Password>
+      <ArtifactType>HierarchicalRequirement</ArtifactType>
       <ExternalIDField>ExternalID</ExternalIDField>
     </RallyConnection>
 
     <RTCConnection>
-      <Url>TBD</Url>
-      <User>username</User>
-      <Password>secret</Password>
-      <ArtifactType>TBD</ArtifactType>
-      <ExternalIDField>RallyID</ExternalIDField>
+      <Url>dev2developer.aetna.com</Url>
+      <User>N12343</User>
+      <Password>asdfasd</Password>
+      <ArtifactType>planItem</ArtifactType>
+      <ProjectArea>Next Gen Platform - Vision 2020 - SAFe</ProjectArea>
+      <ExternalIDField>rtc_cm:jirakey</ExternalIDField>
    </RTCConnection>
 
    <Connector>
     <FieldMapping>
-      <Field><Rally>Name</Rally><Other>Subject</Other></Field>
+      <Field><Rally>Name</Rally><Other>dc:title</Other></Field>
+      <Field><Rally>PlanEstimate</Rally><Other>rtc_cm:com.ibm.team.apt.attribute.complexity</Other></Field>
+      <Field><Rally>Project</Rally><Other>rtc_cm:teamArea</Other></Field>
+      <Field><Rally>ScheduleState</Rally><Other>rtc_cm:state</Other></Field>
+      <Field><Rally>PortfolioItem</Rally><Other>rtc_cm:com.ibm.team.workitem.linktype.parentworkitem.parent</Other></Field>
     </FieldMapping>
+    
+	<OtherFieldHandlers>
+		<RTCComplexityFieldHandler>
+			<FieldName>rtc_cm:com.ibm.team.apt.attribute.complexity</FieldName>
+		</RTCComplexityFieldHandler>
+	
+		<RTCResourceFieldHandler>
+			<FieldName>rtc_cm:state</FieldName>
+			<ReferencedFieldLookupID>dc:title</ReferencedFieldLookupID>  <!-- the field on the thing that's at the other end of the reference pointer -->
+		</RTCResourceFieldHandler>
+				
+		<RTCResourceFieldHandler>
+			<FieldName>rtc_cm:teamArea</FieldName>
+			<ReferencedFieldLookupID>dc:title</ReferencedFieldLookupID>  <!-- the field on the thing that's at the other end of the reference pointer -->
+		</RTCResourceFieldHandler>
+
+		<RTCLinkFieldHandler>
+		    <FieldName>rtc_cm:com.ibm.team.workitem.linktype.parentworkitem.parent</FieldName> <!-- the field on the story -->
+		    <ReferencedFieldLookupID>rtc_cm:jirakey</ReferencedFieldLookupID>  <!-- the field on the thing that's at the other end of the reference pointer -->
+	  	</RTCLinkFieldHandler>
+  
+	</OtherFieldHandlers>
+
+	<RallyFieldHandlers>
+ 		<RallyEnumFieldHandler>
+            <FieldName>ScheduleState</FieldName>
+            <Mappings>
+                <Field><Rally>Defined</Rally>       <Other>To Do</Other></Field>
+                <Field><Rally>In-Progress</Rally>   <Other>In Progress</Other></Field>
+                <Field><Rally>Completed</Rally>     <Other>Ready To Validate</Other></Field>
+                <Field><Rally>Accepted</Rally>      <Other>Done</Other></Field>
+            </Mappings>
+        </RallyEnumFieldHandler>
+        
+		<RallyReferenceFieldHandler>
+			<FieldName>PortfolioItem</FieldName>
+			<ReferencedFieldLookupID>FormattedID</ReferencedFieldLookupID>  <!-- the field on the thing that's at the other end of the reference pointer -->
+		</RallyReferenceFieldHandler>
+	</RallyFieldHandlers>
+
+		
   </Connector>
   
   <ConnectorRunner>
   	<LogLevel>Debug</LogLevel>
     <Preview>false</Preview>
-    <Services>COPY_RTC_TO_RALLY</Services>
+    <Services>COPY_RTC_TO_RALLY,UPDATE_RTC_TO_RALLY</Services>
   </ConnectorRunner>
 </config>

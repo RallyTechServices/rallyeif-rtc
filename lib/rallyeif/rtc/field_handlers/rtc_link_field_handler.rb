@@ -3,18 +3,19 @@
 #require 'rallyeif-wrk'
 #require 'rallyeif-rtc'
 
-# A Resource field handler looks like this
-#   <RTCResourceFieldHandler>
-#     <FieldName>rtc_cm:teamArea</FieldName>
-#     <ReferencedFieldLookupID>dc:title</ReferencedFieldLookupID>  <!-- the story on the thing that's at the other end of the reference pointer -->
-#   </RTCResourceFieldHandler>
+# A RTC Link field handler looks like this
+#
+#<RTCLinkFieldHandler>
+#  <FieldName>rtc_cm:com.ibm.team.workitem.linktype.parentworkitem.parent</FieldName> <!-- the field on the story -->
+#  <ReferencedFieldLookupID>rtc_cm:jirakey</ReferencedFieldLookupID>  <!-- the field on the thing that's at the other end of the reference pointer -->
+#</RTCLinkFieldHandler>"
 
 module RallyEIF
   module WRK
     module FieldHandlers
       
     
-      class RTCResourceFieldHandler < RallyEIF::WRK::FieldHandlers::OtherFieldHandler
+      class RTCLinkFieldHandler < RallyEIF::WRK::FieldHandlers::OtherFieldHandler
       
         def initialize(field_name = nil)
           super(field_name)
@@ -28,15 +29,23 @@ module RallyEIF
             return nil
           end
                     
-          if other_value[@referenced_field_lookup_id] 
+          if other_value.kind_of?(Array)
+            other_value.each do |item|
+              if item[@referenced_field_lookup_id] 
+                return item[@referenced_field_lookup_id]
+              end
+            end
+          elsif other_value[@referenced_field_lookup_id] 
             return other_value[@referenced_field_lookup_id]
           else
             return nil
           end
+          
+          return nil
         end
       
         def transform_in(value)
-          raise RecoverableException.new("Transforming in for RTC Resource Fields is Not Implemented ", self)
+          raise RecoverableException.new("Transforming in for RTC Link Fields is Not Implemented ", self)
         end
         
         def read_config(fh_element)

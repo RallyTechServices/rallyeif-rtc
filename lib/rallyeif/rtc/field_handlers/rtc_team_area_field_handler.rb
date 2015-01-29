@@ -33,7 +33,7 @@ module RallyEIF
         end
       
         def transform_in(value)
-          raise RecoverableException.new("Transforming in for RTC Complexity is Not Implemented ", self)
+          raise RecoverableException.new("Transforming in for RTC Team Area is Not Implemented ", self)
         end
       end
     end
