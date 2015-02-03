@@ -83,4 +83,61 @@ describe 'Resource Field Handler Tests' do
     expect( fh.transform_out(item) ).to be_nil
   end
   
+  it "should correctly transform_out nil if release is Unassigned" do
+    field_value = {
+        "rdf:resource"=>"https://#{TestConfig::RTC_URL}/ccm/oslc/whatever/whatever",
+        "dc:title" => "Unassigned"
+    }
+      
+    new_config = "
+     <RTCResourceFieldHandler>
+       <FieldName>rtc_cm:release</FieldName> <!-- the field on the story or other item -->
+       <ReferencedFieldLookupID>dc:title</ReferencedFieldLookupID>  <!-- the field on the thing that's at the other end of the reference pointer -->
+     </RTCResourceFieldHandler>"
+    
+    item = {'dc:title' => 'test title', 'rtc_cm:release' => field_value }
+
+    root = YetiTestUtils::load_xml(new_config).root
+    fh = RallyEIF::WRK::FieldHandlers::RTCResourceFieldHandler.new
+    fh.connection = @connection
+    fh.read_config(root)
+    expect( fh.transform_out(item) ).to be_nil
+  end
+  
+  it "should correctly transform_out nil if iteration is Unassigned" do
+    field_value = {
+        "rdf:resource"=>"https://#{TestConfig::RTC_URL}/ccm/oslc/whatever/whatever",
+        "dc:title" => "Unassigned"
+    }
+      
+    new_config = "
+     <RTCResourceFieldHandler>
+       <FieldName>rtc_cm:iteration</FieldName> <!-- the field on the story or other item -->
+       <ReferencedFieldLookupID>dc:title</ReferencedFieldLookupID>  <!-- the field on the thing that's at the other end of the reference pointer -->
+     </RTCResourceFieldHandler>"
+    
+    item = {'dc:title' => 'test title', 'rtc_cm:iteration' => field_value }
+  
+    root = YetiTestUtils::load_xml(new_config).root
+    fh = RallyEIF::WRK::FieldHandlers::RTCResourceFieldHandler.new
+    fh.connection = @connection
+    fh.read_config(root)
+    expect( fh.transform_out(item) ).to be_nil
+  end
+
+  it "should correctly transform_out Unassigned value for most fields" do
+    field_value = {
+        "rdf:resource"=>"https://#{TestConfig::RTC_URL}/ccm/oslc/whatever/whatever",
+        "dc:title" => "Unassigned"
+    }
+      
+    item = {'dc:title' => 'test title', resource_field_name => field_value }
+
+    root = YetiTestUtils::load_xml(fieldhandler_config).root
+    fh = RallyEIF::WRK::FieldHandlers::RTCResourceFieldHandler.new
+    fh.connection = @connection
+    fh.read_config(root)
+    expect( fh.transform_out(item) ).to eq("Unassigned")
+  end
+
 end

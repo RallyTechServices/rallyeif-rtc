@@ -29,7 +29,11 @@ module RallyEIF
           end
                     
           if other_value[@referenced_field_lookup_id] 
-            return other_value[@referenced_field_lookup_id]
+            if ( @field_name.to_s == "rtc_cm:release" || @field_name.to_s == "rtc_cm:iteration" ) && other_value[@referenced_field_lookup_id] == "Unassigned"
+              return nil
+            else
+              return other_value[@referenced_field_lookup_id]
+            end
           else
             return nil
           end
