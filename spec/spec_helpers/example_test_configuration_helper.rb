@@ -36,6 +36,8 @@ module TestConfig
   RTC_TEAMAREA = "Care Management"  # just use the last node name when it's a/b/c, use c
   RTC_TEAMAREA_ID = ""  # the internal id of the team area (looks like "_asES3Easdf"
   
+  RTC_RECYCLE_PROJECTAREA = "Recycle Bin" # since we can't delete records, push to this project area
+
   # 
   RTC_EXTERNAL_ID_FIELD    = "rtc_cm:features"
   RTC_EXTERNAL_EU_ID_FIELD = "RallyFormattedID__c"

@@ -14,13 +14,15 @@ describe "When looking for " do
   
   after(:each) do
     @items_to_remove.each do |item|
-      # remove item
+      remove_RTC_artifact(@connection,item)
     end
   end
   
   it "items that are new, should find items without a rally id" do
     items_found_before_create = @connection.find_new()
     item,name = create_RTC_artifact(@connection)
+    @items_to_remove.push(item)
+    
     items_found_after_create = @connection.find_new()
     expect(items_found_after_create.length).to be > items_found_before_create.length
   end
@@ -31,6 +33,41 @@ describe "When looking for " do
     item,name = create_RTC_artifact(@connection, { TestConfig::RTC_EXTERNAL_ID_FIELD => @external_id })
     items_found_after_create = @connection.find_new()
     expect(items_found_after_create.length).to eq( items_found_before_create.length )
+  end
+  
+  it "items that are new and using a user-supplied query for title, should find items without a rally id" do
+    find_title = "Find me: #{@external_id}"
+    @connection.copy_query = "dc:title=\"#{find_title}\""
+    
+    item,name = create_RTC_artifact(@connection)
+    item2,name2 = create_RTC_artifact(@connection,{ "dc:title"=>find_title })
+    
+    items_found_after_create = @connection.find_new()
+    expect(items_found_after_create.length).to eq(1)
+  end
+  
+  it "items that are new and using a user-supplied query for team area, should find items without a rally id" do
+#    
+    #   "dc:title":"Consumer Business 1.0"
+
+    team_name = "Consumer Business 1.0"
+    team_resource_full = "https:\/\/dev2developer.aetna.com\/ccm\/oslc\/teamareas\/_TFK6YWxJEeSXtYeYHu-AxQ"
+    team_resource = "_TFK6YWxJEeSXtYeYHu-AxQ"
+    filed_against = "https:\/\/dev2developer.aetna.com\/ccm\/resource\/itemOid\/com.ibm.team.workitem.Category\/_kLlowGxJEeSXtYeYHu-AxQ"
+    
+    find_team = team_resource
+    @connection.copy_query = "rtc_cm:teamArea=\"#{find_team}\""
+    
+    items_found_before_create = @connection.find_new()
+    item,name = create_RTC_artifact(@connection)
+    item2,name2 = create_RTC_artifact(@connection,{ 
+      "rtc_cm:teamArea"=>{ "rdf:resource"=>team_resource_full },
+      "rtc_cm:filedAgainst"=>{"rdf:resource"=>filed_against}
+
+    })
+    
+    items_found_after_create = @connection.find_new()
+    expect(items_found_after_create.length).to eq(items_found_before_create.length + 1)
   end
   
   it "items by external id, should not find one item" do

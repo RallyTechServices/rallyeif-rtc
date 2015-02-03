@@ -12,7 +12,8 @@ module RallyEIF
                               
     class RTCConnection < Connection
       
-      attr_reader :rtc, :project_area_id, :query_link, :factory_link
+      attr_reader :rtc, :project_areas, :project_area_id, :query_link, :factory_link
+      attr_accessor :copy_query
       
       def initialize(config=nil)
         super()
@@ -24,6 +25,11 @@ module RallyEIF
         @url = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Url")
         @project_area = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "ProjectArea")
         @id_field = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "IDField", false) || "dc:identifier"
+        
+        @copy_query = XMLUtils.get_element_value(config,self.conn_class_name.to_s, "CopyQuery", false)
+        if (! @copy_query.nil? )
+          @copy_query.gsub!(/\s/,'')
+        end
       end
       
       def name()
@@ -45,11 +51,7 @@ module RallyEIF
       
       def field_exists? (field_name)
         # Is this a valid field name?
-
-#        if !@lower_atts.member? field_name.to_s.downcase
-#            RallyLogger.error(self, "RTC field '#{field_name.to_s}' is not a valid field name")
-#            return false
-#        end
+        # TODO: Add validation
         return true
       end
       
@@ -125,17 +127,23 @@ module RallyEIF
         # clobber the namespace
         xml_doc.remove_namespaces!
         
-        # RallyLogger.debug(self,"Project List: #{xml_doc}")
+        #RallyLogger.debug(self,"Catalog: #{xml_doc}")
         
-        valid_projects = []
+        @project_areas = {}
         xml_doc.xpath("//title").each do |project|
-          valid_projects.push(project.text)
+          if ( project.text != "Project Areas" )
+              
+            parent = project.parent
+            details_link = parent.at_xpath('details').attribute('resource')
+            
+            @project_areas[project.text]=details_link.text
+          end
+
           if ( @project_area == project.text ) 
             valid_project_area = true
-            parent = project.parent
 
             @project_area_services_link = parent.at_xpath('services').attribute('resource')
-            @project_area_detail_link =   parent.at_xpath('details').attribute('resource')
+            @project_area_detail_link =  details_link 
            # RallyLogger.debug(self,"Services Link = #{services_list_link}")
             
             begin
@@ -165,15 +173,16 @@ module RallyEIF
             
             @factory_link = factory.text
             @query_link = services_xml.at_xpath('//oslc_cm:simpleQuery/oslc_cm:url').text
-            
           end
         end
         
         if ( !valid_project_area )
           RallyLogger.error(self,"Cannot locate project area [#{@project_area}]")
-          RallyLogger.info(self,"Valid project names are #{valid_projects.join(',')}")
+          RallyLogger.info(self,"Valid project names are #{@project_areas.keys.join(',')}")
           raise UnrecoverableException.new("Cannot find <ProjectArea> called #{@project_area}",self)
         end
+        RallyLogger.debug(self,"PAs: #{@project_areas}")
+
         return valid_project_area
       end
       
@@ -338,7 +347,9 @@ module RallyEIF
         
         parameters = {
           :"oslc_cm.query"  => query_string,
-          :"oslc_cm.properties" => fetch
+          :"oslc_cm.properties" => fetch,
+          :"oslc_cm.pageSize"=>50,
+          :"oslc_cm.paging"=>true
         }
         begin
           results = send_request(@query_link, { :method => :get, :accept => "application/json" }, parameters )
@@ -355,7 +366,42 @@ module RallyEIF
         json_obj['oslc_cm:results'].each do |item|
           populated_items.push(item)
         end
+        
+        if ( json_obj['oslc_cm:next'])
+          populated_items = run_paged_query(json_obj['oslc_cm:next'], populated_items)
+        end
+        
         return populated_items
+      end
+      
+      def run_paged_query(next_url, populated_items=[])
+        begin
+          results = send_request(next_url, { :method => :get, :accept => "application/json" } )
+        rescue Exception => ex
+          raise UnrecoverableException.new("Could not execute paged query. RTC returned: #{ex.message}",self)
+        end
+        
+        RallyLogger.debug(self, "Paged Query Result: #{results}")
+        
+        json_obj = json_obj = JSON.parse(results)
+        json_obj['oslc_cm:results'].each do |item|
+          populated_items.push(item)
+        end
+                  
+        if ( json_obj['oslc_cm:next'])
+          populated_items = run_paged_query(json_obj['oslc_cm:next'], populated_items)
+        end
+        
+        return populated_items
+      end
+      
+      def get_find_new_query()
+        query = "dc:type=\"com.ibm.team.apt.workItemType.story\" and #{@external_id_field}=\"\""  #TODO can we get this from knowing we're doing a plan item?
+        
+        if (! @copy_query.nil? )
+          query = "#{@copy_query} and #{query}"
+        end
+        return query
       end
       
       def find_new()
@@ -363,7 +409,8 @@ module RallyEIF
         artifact_array = []
         begin
           # query = "dc:type=\"com.ibm.team.apt.workItemType.story\""
-          query = "dc:type=\"com.ibm.team.apt.workItemType.story\" and #{@external_id_field}=\"\""  #TODO can we get this from knowing we're doing a plan item?
+          query = get_find_new_query()
+          
           RallyLogger.debug(self, " Using query: #{query}")
           artifact_array = find_by_query(query)
         rescue Exception => ex
@@ -452,14 +499,16 @@ module RallyEIF
         # to do a partial update, pass the fields that changed in a 
         #URL="https://localhost:9443/jazz/resource/itemName/com.ibm.team.workitem.WorkItem/821?oslc_cm.properties=dc:type"
         changed_properties = int_work_item.keys.join(',')
+        RallyLogger.debug(self,"Changing: #{int_work_item}")
         begin
           new_item = JSON.parse(send_request(url + "?oslc_cm.properties=#{changed_properties}", args))
+          RallyLogger.debug(self, "NEW:#{new_item}")
         rescue RuntimeError => ex
           RallyLogger.error(self, "Could not update item: #{artifact[@id_field]}")
           RallyLogger.error(self, "Received error: #{ex}")
           raise RecoverableException.copy(ex, self)
         end
-        RallyLogger.debug(self,"Updated #{@artifact_type} #{new_item[@id_field]}")
+        RallyLogger.info(self,"Updated #{@artifact_type} #{new_item[@id_field]}")
         return new_item
       end
       

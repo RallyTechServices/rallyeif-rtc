@@ -10,6 +10,8 @@
       <Password>aadfasd</Password>
       <ArtifactType>HierarchicalRequirement</ArtifactType>
       <ExternalIDField>ExternalID</ExternalIDField>
+      <CopyQuery>dc:identifier=1</CopyQuery>
+      
     </RallyConnection>
 
     <RTCConnection>

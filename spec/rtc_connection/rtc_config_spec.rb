@@ -35,5 +35,37 @@ describe "Given configuration in the RTCConnection section," do
     expect(connection.external_item_link_field).to be_nil
     expect( connection.id_field ).to eq("dc:identifier")
   end
+  
+  it "should read copy query" do
+    connection = getRTCConnection(RTCSpecHelper::RTC_QUERY_CONFIG)
+    expect(connection.copy_query).to eq("dc:identifier=1")
+  end
+  
+  it "should read copy query" do
+    connection = getRTCConnection(RTCSpecHelper::RTC_QUERY_CONFIG)
+    expect(connection.copy_query).to eq("dc:identifier=1")
+  end
+  
+  it "should remove spaces from copy query" do
+    config = YetiTestUtils::modify_config_data(
+      RTCSpecHelper::RTC_QUERY_CONFIG,           #1 CONFIG  - The config file to be augmented
+      "RTCConnection",                           #2 SECTION - XML element of CONFIG to be augmented
+      "CopyQuery",                               #3 NEWTAG  - New tag name in reference to REFTAG
+      "dc:identifier =  1",                                    #4 VALUE   - New value to put into NEWTAG
+      "replace",                                 #5 ACTION  - [before, after, replace, delete]
+      "CopyQuery") 
+      connection = getRTCConnection(config)
+      expect(connection.copy_query).to eq("dc:identifier=1")
+  end
+  
+  it "should get a basic query for finding new items " do
+    connection = getRTCConnection(RTCSpecHelper::RTC_STATIC_CONFIG)
+    expect( connection.get_find_new_query() ).to  eq("dc:type=\"com.ibm.team.apt.workItemType.story\" and #{TestConfig::RTC_EXTERNAL_ID_FIELD}=\"\"")
+  end
+  
+  it "should get a user defined query for finding new items " do
+    connection = getRTCConnection(RTCSpecHelper::RTC_QUERY_CONFIG)
+    expect( connection.get_find_new_query() ).to  eq("dc:identifier=1 and dc:type=\"com.ibm.team.apt.workItemType.story\" and #{TestConfig::RTC_EXTERNAL_ID_FIELD}=\"\"")
+  end
     
 end

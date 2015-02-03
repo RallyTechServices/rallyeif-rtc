@@ -44,6 +44,7 @@ describe "Given configuration in the RTCConnection section and logging in," do
     connection = RTC_connect(RTCSpecHelper::RTC_STATIC_CONFIG)
     connection.validate
     
-    expect( connection.get_fetch() ).to eq("dc:title,rtc_cm:com.ibm.team.apt.attribute.complexity{*},rtc_cm:state{*},rtc_cm:teamArea{*},#{TestConfig::RTC_EXTERNAL_ID_FIELD}")
+    #expect( connection.get_fetch() ).to eq("dc:title,rtc_cm:com.ibm.team.apt.attribute.complexity{*},rtc_cm:state{*},rtc_cm:teamArea{*},#{TestConfig::RTC_EXTERNAL_ID_FIELD}")
+    expect( connection.get_fetch() ).to eq("*{*}")
   end
 end

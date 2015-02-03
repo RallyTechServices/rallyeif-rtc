@@ -1,6 +1,6 @@
 ##How to Install: Rally - Rational Team Concert Connector
 
-**29 January 2015**
+**3 February 2015**
 
 ### Overview
 
@@ -71,6 +71,7 @@ This section holds information for connecting to Rally, as well as the Rally fie
   * ArtifactType : The type of object to copy from RTC.  This is for future development to allow for other record types to use the same engine.  A story in RTC is called a "planItem" in the API.
   * Project Area : The project area from which to copy data.  Team Areas are associated to Rally projects in the FieldMapping section below.  In development, we used "Next Gen Platform - Vision 2020 - SAFe"
   * ExternalIDField : The name of the custom field created above to hold the ID of the Rally object that gets created.
+  * CopyQuery : This is optional.  You can put an RTC query expression to restrict the items that will be initially copied.  Queries must be made in the format of an RTC query (e.g., rtc_cm:teamArea="_TFK6YWxJEeSXtYeYHu-AxQ".  You can find the team area ID by using the included find_team_id.rb file (type ruby find_team_id.rb <config file> <team name>))
   
 #### Connector
 

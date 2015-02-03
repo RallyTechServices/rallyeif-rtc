@@ -35,6 +35,19 @@ module RTCSpecHelper
       </RTCConnection>
     </config>"
   
+  RTC_QUERY_CONFIG = "
+    <config>
+      <RTCConnection>
+        <Url>#{TestConfig::RTC_URL}</Url>
+        <User>#{TestConfig::RTC_USER}</User>
+        <Password>#{TestConfig::RTC_PASSWORD}</Password>
+        <ProjectArea>#{TestConfig::RTC_PROJECTAREA}</ProjectArea>
+        <ExternalIDField>#{TestConfig::RTC_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ArtifactType>#{TestConfig::RTC_ARTIFACT_TYPE}</ArtifactType>
+        <CopyQuery>dc:identifier=1</CopyQuery>
+      </RTCConnection>
+    </config>"
+  
   RTC_MISSING_PROJECT_AREA_CONFIG = "
     <config>
       <RTCConnection>
@@ -103,15 +116,20 @@ module RTCSpecHelper
     return connection
   end
   
+  def remove_RTC_artifact(connection, artifact)
+    #TODO
+    
+  end
+  
   def create_RTC_artifact(connection, extra_fields = nil)    
     name = 'Time-' + Time.now.strftime("%Y%m%d%H%M%S") + '-' + Time.now.usec.to_s
     fields            = {}
     fields["dc:title"] = name
       # TODO: fix required field to make it generic.  This is required in current environment:
-#      fields["rtc_cm:filedAgainst"] = 
-#        "https://dev2developer.aetna.com/ccm/resource/itemOid/com.ibm.team.workitem.Category/_NaEYwGxJEeSXtYeYHu-AxQ"
-       fields["rtc_cm:filedAgainst"] = 
-         "https://dev2developer.aetna.com/ccm/resource/itemOid/com.ibm.team.workitem.Category/_ohx7gKDDEeSNq699yfGkFw"
+      fields["rtc_cm:filedAgainst"] = 
+        "https://dev2developer.aetna.com/ccm/resource/itemOid/com.ibm.team.workitem.Category/_NaEYwGxJEeSXtYeYHu-AxQ"
+#       fields["rtc_cm:filedAgainst"] = 
+#         "https://dev2developer.aetna.com/ccm/resource/itemOid/com.ibm.team.workitem.Category/_ohx7gKDDEeSNq699yfGkFw"
 
     if !extra_fields.nil?
       fields.merge!(extra_fields)
