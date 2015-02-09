@@ -77,8 +77,14 @@ module RallyEIF
 
         private
         def get_qualifiers(target_type, ref_field_lookup, value)
+          RallyLogger.debug(self, "Getting Qualifiers")
           query_fields = "ObjectID,FormattedID,Project,Name,%s" % ref_field_lookup
           query_string = '(%s = "%s")' % [ref_field_lookup, value]
+          RallyLogger.debug(self, "query_fields: #{query_fields}")
+          RallyLogger.debug(self, "query_string: #{query_string}")
+          RallyLogger.debug(self, "target_workspace: #{@target_workspace}")
+          RallyLogger.debug(self, "type: #{target_type.downcase.to_sym}")
+
           query = RallyAPI::RallyQuery.new(:type         => target_type.downcase.to_sym,
                                            :fetch        => query_fields,
                                            :query_string => query_string,
@@ -87,18 +93,21 @@ module RallyEIF
           query_result = @connection.rally_api.find(query)
           return nil if query_result.nil? or query_result.results.length == 0
 
+          RallyLogger.debug(self, "Count: #{query_result.length}")
           if @field_name != :Project and @field_name != :WorkProduct
               # select only the query_result.results items whose Project name is one of the Projects in @connection.projects
               proj_names = @connection.project_names
               project_results = query_result.select { |qr| proj_names.include?(qr.Project.Name) }
               query_result = project_results
           end
+          RallyLogger.debug(self, "Count: #{query_result.length}")
 
           items = query_result  # predominant ref_field_lookup will be 'Name'
           if ref_field_lookup.to_s == 'FormattedID'
               stdized_value = value.upcase()
               items = query_result.select { |item| item.FormattedID.upcase == stdized_value }
           end
+          RallyLogger.debug(self, "Count: #{items.length}")
 
           refs = []
           items.each do |item|
