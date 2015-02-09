@@ -94,7 +94,7 @@ module RallyEIF
           return nil if query_result.nil? or query_result.results.length == 0
 
           RallyLogger.debug(self, "Count: #{query_result.length}")
-          if @field_name != :Project and @field_name != :WorkProduct
+          if @field_name != :Project and @field_name != :WorkProduct and @field_name != :PortfolioItem
               # select only the query_result.results items whose Project name is one of the Projects in @connection.projects
               proj_names = @connection.project_names
               project_results = query_result.select { |qr| proj_names.include?(qr.Project.Name) }
