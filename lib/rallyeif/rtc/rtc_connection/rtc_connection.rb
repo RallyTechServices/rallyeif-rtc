@@ -225,7 +225,7 @@ module RallyEIF
         # RallyLogger.debug(self,"Details Output: #{details_xml}")
         
         team_areas_link = details_xml.at_xpath('//team-areas-url').text
-        RallyLogger.debug(self,"Team Areas Link: #{team_areas_link}")
+        # RallyLogger.debug(self,"Team Areas Link: #{team_areas_link}")
         begin
           team_areas = send_request(team_areas_link, args)
         rescue Exception => ex
@@ -234,7 +234,7 @@ module RallyEIF
         team_areas_xml = Nokogiri::XML(team_areas)
         team_areas_xml.remove_namespaces!
         
-        RallyLogger.debug(self, "Team Areas #{team_areas_xml}")
+        # RallyLogger.debug(self, "Team Areas #{team_areas_xml}")
         @team_areas = {}
           
         team_areas_xml.xpath("//team-area").each do |team_area|
@@ -316,15 +316,6 @@ module RallyEIF
       
       def get_fetch()
 #        #fetch = "dc:identifier{*},dc:title,rtc_cm:com.ibm.team.apt.attribute.complexity{*},rtc_cm:state{*},rtc_cm:teamArea{*}"
-#
-#        if !@external_id_field.nil?
-#          fetch = "#{fetch},#{@external_id_field}"
-#        end
-#        
-#        if !@external_end_user_id_field.nil?
-#          fetch = "#{fetch},#{@external_end_user_id_field}"
-#        end
-        
         # TODO: ask for fewer parameters for performance
         
         fetch = "*{*}"
@@ -347,11 +338,11 @@ module RallyEIF
           raise UnrecoverableException.new("Could not execute query. RTC returned: #{ex.message}",self)
         end
         
-        RallyLogger.debug(self, "Query Result: #{results}")
+        # RallyLogger.debug(self, "Query Result: #{results}")
         
         json_obj = json_obj = JSON.parse(results)
         total_result_count = json_obj['oslc_cm:totalCount']
-        RallyLogger.info(self, "Found: #{total_result_count} items")
+        #RallyLogger.info(self, "Found: #{total_result_count} items")
         
         populated_items = []
         json_obj['oslc_cm:results'].each do |item|
@@ -383,7 +374,7 @@ module RallyEIF
         end
         
         if populated_items.length < total_result_count
-          RallyLogger.debug(self, "Hmm")
+          RallyLogger.debug(self, "HMMMM")
         end        
         
         return populated_items
@@ -410,10 +401,9 @@ module RallyEIF
         artifact_array = []
 
         @team_areas.each do |team_id,team_name|
-          RallyLogger.debug(self, "Searching team: #{team_name}" )
           begin
             query = "#{base_query} and rtc_cm:teamArea=\"#{team_id}\""
-            RallyLogger.debug(self, " Using query: #{query}")
+            RallyLogger.debug(self, "Searching team: #{team_name} using query: #{query}")
             artifact_array = artifact_array.concat( find_by_query(query) )
           rescue Exception => ex
             raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
@@ -422,7 +412,7 @@ module RallyEIF
         end
         
         #RallyLogger.debug(self, "Found #{artifact_array}")
-        RallyLogger.info(self, "Found #{artifact_array.length} new #{@artifact_type}s in #{name()}.")
+        RallyLogger.debug(self, "Found #{artifact_array.length} new #{@artifact_type}s in #{name()}.")
         return artifact_array
       end
       
@@ -436,14 +426,13 @@ module RallyEIF
         end
                        
         @team_areas.each do |team_id,team_name|
-          RallyLogger.debug(self, "Searching updates in team: #{team_name}" )
           base_query = "dc:modified>=\"#{check_time}.0Z\" and dc:type=\"com.ibm.team.apt.workItemType.story\" and #{@external_id_field}!=\"\"" 
   
           begin
            # query = "dc:modified>=12-01-2014T00:00:00"
            query = "#{base_query} and rtc_cm:teamArea=\"#{team_id}\""
           
-            RallyLogger.debug(self, " Using query: #{query}")
+            RallyLogger.debug(self, " Searching updates in team: #{team_name} using query: #{query}")
             artifact_array = artifact_array.concat(find_by_query(query))
           rescue Exception => ex
             raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
@@ -568,7 +557,6 @@ module RallyEIF
         end
   
         #RallyLogger.debug(self,"RTC response was - #{response.inspect}")
-        RallyLogger.debug(self,"#{response.headers}")
         if response.status_code != 200 && response.status_code != 201
           msg = "RTC Connection - HTTP-#{response.status_code} on request - #{url}."
           msg << "\nResponse was: #{response.body}"
