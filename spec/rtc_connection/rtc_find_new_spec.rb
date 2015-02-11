@@ -16,6 +16,13 @@ describe "When looking for new items" do
     end
   end
   
+  it "should create 2000 stories" do
+    (1..2000).each do |idx|
+      puts idx
+      item,name = create_RTC_artifact(@connection)
+    end
+  end
+  
   it "should find items without a rally id" do
     items_found_before_create = @connection.find_new()
     item,name = create_RTC_artifact(@connection)

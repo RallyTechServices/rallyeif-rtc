@@ -126,10 +126,10 @@ module RTCSpecHelper
     fields            = {}
     fields["dc:title"] = name
       # TODO: fix required field to make it generic.  This is required in current environment:
-      fields["rtc_cm:filedAgainst"] = 
-        "https://dev2developer.aetna.com/ccm/resource/itemOid/com.ibm.team.workitem.Category/_NaEYwGxJEeSXtYeYHu-AxQ"
-#       fields["rtc_cm:filedAgainst"] = 
-#         "https://dev2developer.aetna.com/ccm/resource/itemOid/com.ibm.team.workitem.Category/_ohx7gKDDEeSNq699yfGkFw"
+#      fields["rtc_cm:filedAgainst"] = 
+#        "https://dev2developer.aetna.com/ccm/resource/itemOid/com.ibm.team.workitem.Category/_NaEYwGxJEeSXtYeYHu-AxQ"
+       fields["rtc_cm:filedAgainst"] = 
+         "https://dev2developer.aetna.com/ccm/resource/itemOid/com.ibm.team.workitem.Category/_ohx7gKDDEeSNq699yfGkFw"
 
     if !extra_fields.nil?
       fields.merge!(extra_fields)

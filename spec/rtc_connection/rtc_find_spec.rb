@@ -157,7 +157,7 @@ describe "When looking for " do
   end
   
   it "project area name, should find name when given a valid id" do
-    expect( @connection.find_team_area_name(TestConfig::RTC_TEAMAREA_ID) ).to eq(TestConfig::RTC_TEAMAREA)
+    expect( @connection.find_team_area_name(TestConfig::RTC_TEAMAREA_ID) ).to eq(TestConfig::RTC_TEAMAREA.downcase)
   end
   
   it "project area name, should return nil when given an invalid id" do
@@ -173,12 +173,12 @@ describe "When looking for " do
   end
   
   it "project area name, should return name when given a valid url" do
-    expect( @connection.find_team_area_name("https://#{TestConfig::RTC_URL}/ccm/process/project-areas/#{TestConfig::RTC_PROJECTAREA_ID}/team-areas/#{TestConfig::RTC_TEAMAREA_ID}") ).to eq(TestConfig::RTC_TEAMAREA)
+    expect( @connection.find_team_area_name("https://#{TestConfig::RTC_URL}/ccm/process/project-areas/#{TestConfig::RTC_PROJECTAREA_ID}/team-areas/#{TestConfig::RTC_TEAMAREA_ID}") ).to eq(TestConfig::RTC_TEAMAREA.downcase)
   end
   
   ## there are multiple URLs that can represent a project
   it "project area name, should return when given an oslc url" do
-    expect( @connection.find_team_area_name( "https://#{TestConfig::RTC_URL}/ccm/oslc/teamareas/#{TestConfig::RTC_TEAMAREA_ID}") ).to eq(TestConfig::RTC_TEAMAREA)
+    expect( @connection.find_team_area_name( "https://#{TestConfig::RTC_URL}/ccm/oslc/teamareas/#{TestConfig::RTC_TEAMAREA_ID}") ).to eq(TestConfig::RTC_TEAMAREA.downcase)
   end
   
 end

@@ -212,13 +212,7 @@ module RallyEIF
         return status_of_all_fields
       end
       
-      def find_team_area_id(team_name)
-        RallyLogger.info(self,"Finding Team Area [#{team_name}]")
-
-        if team_name.nil? || team_name.empty?
-          return nil
-        end
-        
+      def find_team_areas()
         args = { :method => :get }
         begin
           details = send_request(@project_area_detail_link, args )
@@ -240,15 +234,35 @@ module RallyEIF
         team_areas_xml = Nokogiri::XML(team_areas)
         team_areas_xml.remove_namespaces!
         
-        # RallyLogger.debug(self,"Team Areas Output: #{team_areas_xml}")
-               
-        team_area_id = nil
-         
+        RallyLogger.debug(self, "Team Areas #{team_areas_xml}")
+        @team_areas = {}
+          
         team_areas_xml.xpath("//team-area").each do |team_area|
           # <team-area name="Consumer Business 1.0">
           #         <url>https://dev2developer.aetna.com/ccm/process/project-areas/_NHtogaDCEeSNq699yfGkFw/team-areas/_IQHyAKDDEeSNq699yfGkFw</url>
-          if ( "#{team_name}".downcase == "#{team_area.attribute('name')}".downcase ) 
-            team_area_id =  team_area.at_xpath('url').text.gsub(/.*\//,"")
+          @team_areas["#{team_area.at_xpath('url').text.gsub(/.*\//,"")}"] =  "#{team_area.attribute('name')}".downcase
+        end
+                
+        # RallyLogger.debug(self,"Team Areas Output: #{team_areas_xml}")
+        return team_areas_xml
+      end
+      
+      def find_team_area_id(team_name)
+        RallyLogger.info(self,"Finding Team Area [#{team_name}]")
+
+        if team_name.nil? || team_name.empty?
+          return nil
+        end
+        
+        if !@team_areas 
+          find_team_areas()
+        end
+              
+        team_area_id = nil
+                 
+        @team_areas.each do |id,name|
+          if name == team_name.downcase
+            team_area_id = id
           end
         end
         
@@ -262,40 +276,15 @@ module RallyEIF
           return nil
         end
         
+        team_areas_xml = find_team_areas
+
         team_id.gsub!(/.*\//,"")
-        
-        args = { :method => :get }
-        begin
-          details = send_request(@project_area_detail_link, args )
-        rescue Exception => ex
-          raise UnrecoverableException.new("Could not get ProjectArea details. RTC returned: #{ex.message}",self)
+     
+        if !@teams_areas 
+          find_team_areas()
         end
-        details_xml = Nokogiri::XML(details)
-        details_xml.remove_namespaces!
-  
-        # RallyLogger.debug(self,"Details Output: #{details_xml}")
-        
-        team_areas_link = details_xml.at_xpath('//team-areas-url').text
-        RallyLogger.debug(self,"Team Areas Link: #{team_areas_link}")
-        begin
-          team_areas = send_request(team_areas_link, args)
-        rescue Exception => ex
-          raise UnrecoverableException.new("Could not get to TeamAreas link #{team_areas_link}. RTC returned: #{ex.message}",self)
-        end
-        team_areas_xml = Nokogiri::XML(team_areas)
-        team_areas_xml.remove_namespaces!
-        
-        # RallyLogger.debug(self,"Team Areas Output: #{team_areas_xml}")
-               
-        team_area_name = nil
-         
-        team_areas_xml.xpath("//team-area").each do |team_area|
-          # <team-area name="Consumer Business 1.0">
-          #         <url>https://dev2developer.aetna.com/ccm/process/project-areas/_NHtogaDCEeSNq699yfGkFw/team-areas/_IQHyAKDDEeSNq699yfGkFw</url>
-          if ( "#{team_area.at_xpath('url').text}".include?(team_id) ) 
-            team_area_name =  team_area.attribute('name').to_s
-          end
-        end
+                              
+        team_area_id = @team_areas[team_id]
         
         return team_area_name
       end
@@ -347,6 +336,7 @@ module RallyEIF
         
         parameters = {
           :"oslc_cm.query"  => query_string,
+          #:"oslc_cm.properties" => 'dc:title,dc:identifier',
           :"oslc_cm.properties" => fetch,
           :"oslc_cm.pageSize"=>50,
           :"oslc_cm.paging"=>true
@@ -360,37 +350,41 @@ module RallyEIF
         RallyLogger.debug(self, "Query Result: #{results}")
         
         json_obj = json_obj = JSON.parse(results)
-        RallyLogger.info(self, "Found: #{json_obj['oslc_cm:totalCount']} items")
+        total_result_count = json_obj['oslc_cm:totalCount']
+        RallyLogger.info(self, "Found: #{total_result_count} items")
         
         populated_items = []
         json_obj['oslc_cm:results'].each do |item|
           populated_items.push(item)
         end
         
-        if ( json_obj['oslc_cm:next'])
-          populated_items = run_paged_query(json_obj['oslc_cm:next'], populated_items)
+        if (json_obj['oslc_cm:next'])
+          populated_items = run_paged_query(json_obj['oslc_cm:next'], populated_items, total_result_count)
         end
         
         return populated_items
       end
       
-      def run_paged_query(next_url, populated_items=[])
+      def run_paged_query(next_url, populated_items=[], total_result_count=0)
         begin
           results = send_request(next_url, { :method => :get, :accept => "application/json" } )
         rescue Exception => ex
           raise UnrecoverableException.new("Could not execute paged query. RTC returned: #{ex.message}",self)
         end
         
-        RallyLogger.debug(self, "Paged Query Result: #{results}")
         
-        json_obj = json_obj = JSON.parse(results)
+        json_obj = JSON.parse(results)
         json_obj['oslc_cm:results'].each do |item|
           populated_items.push(item)
         end
-                  
+                          
         if ( json_obj['oslc_cm:next'])
           populated_items = run_paged_query(json_obj['oslc_cm:next'], populated_items)
         end
+        
+        if populated_items.length < total_result_count
+          RallyLogger.debug(self, "Hmm")
+        end        
         
         return populated_items
       end
@@ -406,16 +400,25 @@ module RallyEIF
       
       def find_new()
         RallyLogger.info(self, "Find New RTC #{@artifact_type}s")
+        # query = "dc:type=\"com.ibm.team.apt.workItemType.story\""
+        base_query = get_find_new_query()
+        
+        if !@team_areas
+          find_team_areas()
+        end
+        
         artifact_array = []
-        begin
-          # query = "dc:type=\"com.ibm.team.apt.workItemType.story\""
-          query = get_find_new_query()
-          
-          RallyLogger.debug(self, " Using query: #{query}")
-          artifact_array = find_by_query(query)
-        rescue Exception => ex
-          raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
-          raise UnrecoverableException.copy(ex,self)
+
+        @team_areas.each do |team_id,team_name|
+          RallyLogger.debug(self, "Searching team: #{team_name}" )
+          begin
+            query = "#{base_query} and rtc_cm:teamArea=\"#{team_id}\""
+            RallyLogger.debug(self, " Using query: #{query}")
+            artifact_array = artifact_array.concat( find_by_query(query) )
+          rescue Exception => ex
+            raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
+            raise UnrecoverableException.copy(ex,self)
+          end
         end
         
         #RallyLogger.debug(self, "Found #{artifact_array}")
@@ -427,17 +430,27 @@ module RallyEIF
         RallyLogger.info(self, "Find RTC #{@artifact_type}s updated after #{reference_time} ")
         check_time = "#{reference_time}".gsub(/ /,"T").gsub(/TUTC/,"")
         artifact_array = []
-        begin
-         # query = "dc:modified>=12-01-2014T00:00:00"
-          query = "dc:modified>=\"#{check_time}.0Z\" and dc:type=\"com.ibm.team.apt.workItemType.story\" and #{@external_id_field}!=\"\"" 
-          
-          RallyLogger.debug(self, " Using query: #{query}")
-          artifact_array = find_by_query(query)
-        rescue Exception => ex
-          raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
-          raise UnrecoverableException.copy(ex,self)
-        end
         
+        if !@team_areas
+          find_team_areas()
+        end
+                       
+        @team_areas.each do |team_id,team_name|
+          RallyLogger.debug(self, "Searching updates in team: #{team_name}" )
+          base_query = "dc:modified>=\"#{check_time}.0Z\" and dc:type=\"com.ibm.team.apt.workItemType.story\" and #{@external_id_field}!=\"\"" 
+  
+          begin
+           # query = "dc:modified>=12-01-2014T00:00:00"
+           query = "#{base_query} and rtc_cm:teamArea=\"#{team_id}\""
+          
+            RallyLogger.debug(self, " Using query: #{query}")
+            artifact_array = artifact_array.concat(find_by_query(query))
+          rescue Exception => ex
+            raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
+            raise UnrecoverableException.copy(ex,self)
+          end
+        end
+          
         RallyLogger.info(self, "Found #{artifact_array.length} updated #{@artifact_type}s in #{name()}.")
         return artifact_array
       end
@@ -555,6 +568,7 @@ module RallyEIF
         end
   
         #RallyLogger.debug(self,"RTC response was - #{response.inspect}")
+        RallyLogger.debug(self,"#{response.headers}")
         if response.status_code != 200 && response.status_code != 201
           msg = "RTC Connection - HTTP-#{response.status_code} on request - #{url}."
           msg << "\nResponse was: #{response.body}"
@@ -594,24 +608,24 @@ module RallyEIF
          response.headers['Set-Cookie']
        end
            
-        def setup_request_headers(http_method, accept='text/xml')
-          req_headers = { "Accept" => accept }
+      def setup_request_headers(http_method, accept='text/xml')
+        req_headers = { "Accept" => accept }
 
-          if (http_method == :post) || (http_method == :put)
-            req_headers["Content-Type"] = "application/json"
-            req_headers["Accept"] = "application/json"
-          end
-          
-          auth = 'Basic ' + Base64.encode64( "#{@user}:#{@password}" ).chomp
-          req_headers['Authorization'] = auth
-             
-          req_headers
+        if (http_method == :post) || (http_method == :put)
+          req_headers["Content-Type"] = "application/json"
+          req_headers["Accept"] = "application/json"
         end
+        
+        auth = 'Basic ' + Base64.encode64( "#{@user}:#{@password}" ).chomp
+        req_headers['Authorization'] = auth
+           
+        req_headers
+      end
     
-        def set_client_user(base_url, user, password)
-          @rtc_http_client.set_auth(base_url, user, password)
-          @rtc_http_client.www_auth.basic_auth.challenge(base_url)  #force httpclient to put basic on first req to rally
-        end
+      def set_client_user(base_url, user, password)
+        @rtc_http_client.set_auth(base_url, user, password)
+        @rtc_http_client.www_auth.basic_auth.challenge(base_url)  #force httpclient to put basic on first req to rally
+      end
 
     end
   end
