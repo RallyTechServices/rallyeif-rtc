@@ -23,20 +23,24 @@ module RallyEIF
         
         # from RTC, an artifact is just an ordinary hash
         def transform_out(artifact)
-         
           other_value = @connection.get_value(artifact,@field_name)
           if other_value.nil? || other_value.empty?
             return nil
           end
                     
+          RallyLogger.debug(self, "Other Value: #{other_value}")
           if other_value.kind_of?(Array)
             other_value.each do |item|
-              if item[@referenced_field_lookup_id] 
-                return item[@referenced_field_lookup_id]
+              if is_a_feature?(item)
+                if item[@referenced_field_lookup_id] 
+                  return item[@referenced_field_lookup_id]
+                end
               end
             end
           elsif other_value[@referenced_field_lookup_id] 
-            return other_value[@referenced_field_lookup_id]
+            if is_a_feature?(item)
+              return other_value[@referenced_field_lookup_id]
+            end
           else
             return nil
           end
@@ -63,7 +67,12 @@ module RallyEIF
           end
 
         end #end read_config
-         
+        def is_a_feature?(item)
+          if item["dc:type"] && item["dc:type"]["rdf:resource"]
+            return !!( item["dc:type"]["rdf:resource"] =~ /Feature/ )
+          end
+          return true
+        end 
       end
     end
   end

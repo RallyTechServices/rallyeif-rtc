@@ -40,9 +40,6 @@ module RallyEIF
         # this "null" transform was being used in a rallyeif-wrk gem used for an AMEX beta build
         # that purportedly  handled project scoping when mapping Release/Iteration when multiple
         # projects were specified
-#        def transform_in(value)
-#          return value
-#        end
 
         def transform_in(value)
           return nil if value.nil? || value.to_s.empty?

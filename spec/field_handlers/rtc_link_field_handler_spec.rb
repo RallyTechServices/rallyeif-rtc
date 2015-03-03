@@ -199,4 +199,38 @@ describe 'Link Field Handler Tests' do
     expect( fh.transform_out(item) ).to be_nil
   end
   
+  # "dc:type"=>{"rdf:resource"=>"https://dev2developer.aetna.com/ccm/oslc/types/_MUR1YWxJEeSXtYeYHu-AxQ/com.ibm.team.apt.workItemType.story"},
+  it "should not transform_out when the other item is a story" do
+      field_value = [{
+          "rdf:resource"=>"https://#{TestConfig::RTC_URL}/ccm/oslc/whatever/whatever",
+          "dc:title" => "Wilma",
+          "dc:type"=>{"rdf:resource"=>"https://dev2developer.aetna.com/ccm/oslc/types/_MUR1YWxJEeSXtYeYHu-AxQ/com.ibm.team.apt.workItemType.story"},
+          referenced_field_name => "Fred"
+      }]
+        
+      item = {'dc:title' => 'test title', mapped_field_name => field_value }
+  
+      root = YetiTestUtils::load_xml(fieldhandler_config).root
+      fh = RallyEIF::WRK::FieldHandlers::RTCLinkFieldHandler.new
+      fh.connection = @connection
+      fh.read_config(root)
+      expect( fh.transform_out(item) ).to be_nil
+    end
+  
+  it "should transform_out when the other item says it's a feature" do
+        field_value = [{
+            "rdf:resource"=>"https://#{TestConfig::RTC_URL}/ccm/oslc/whatever/whatever",
+            "dc:title" => "Wilma",
+            "dc:type"  => {"rdf:resource" => "https://dev2developer.aetna.com/ccm/oslc/types/_NHtogaDCEeSNq699yfGkFw/Feature"},
+            referenced_field_name => "Fred"
+        }]
+          
+        item = {'dc:title' => 'test title', mapped_field_name => field_value }
+    
+        root = YetiTestUtils::load_xml(fieldhandler_config).root
+        fh = RallyEIF::WRK::FieldHandlers::RTCLinkFieldHandler.new
+        fh.connection = @connection
+        fh.read_config(root)
+        expect( fh.transform_out(item) ).to eq("Fred")
+      end
 end

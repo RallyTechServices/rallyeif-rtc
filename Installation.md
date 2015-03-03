@@ -142,3 +142,19 @@ When running with a cronjob/scheduled task, make sure that the user executing vi
 To have the connector decide when to wake up and re-run, pass a number of minutes between runs instead of -1.  The connector will execute and then sleep for that number of minutes.  Do not combine this mechanism with cronjob/scheduled task.
 
     > ruby rally2_rtc_connector.rb my_config_file.xml 15
+    
+## Debugging and Notes
+
+#### 403
+
+There are at least two possible causes we've seen for the following error:
+
+	Response was: {
+	    "oslc_cm:message": "CRJAZ1316E The user \"{id}\" does not have permission to read items that have the WorkItem access type.",
+	    "oslc_cm:status": 403
+	}
+
+It is possible that the account being used to attach to RTC to query the data does not have access to the Project Area.
+
+The other, more subtle, reason might be that there are stories in the query selection that have link relationships (parent or blocker, say) in a different Project Area and the account does not have access to that Project Area.
+

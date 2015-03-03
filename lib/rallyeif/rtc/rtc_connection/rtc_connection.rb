@@ -242,8 +242,9 @@ module RallyEIF
           #         <url>https://dev2developer.aetna.com/ccm/process/project-areas/_NHtogaDCEeSNq699yfGkFw/team-areas/_IQHyAKDDEeSNq699yfGkFw</url>
           @team_areas["#{team_area.at_xpath('url').text.gsub(/.*\//,"")}"] =  "#{team_area.attribute('name')}".downcase
         end
-                
-        # RallyLogger.debug(self,"Team Areas Output: #{team_areas_xml}")
+             
+        RallyLogger.debug(self,"Team Areas Output: #{team_areas_xml}")
+        RallyLogger.debug(self, "Team Areas Hash : #{@team_areas}")
         return team_areas_xml
       end
       
@@ -399,12 +400,17 @@ module RallyEIF
         end
         
         artifact_array = []
-
+        counter = 0
+        count_of_team_areas = @team_areas.keys().length
+        
         @team_areas.each do |team_id,team_name|
+          counter = counter + 1
           begin
             query = "#{base_query} and rtc_cm:teamArea=\"#{team_id}\""
-            RallyLogger.debug(self, "Searching team: #{team_name} using query: #{query}")
-            artifact_array = artifact_array.concat( find_by_query(query) )
+            RallyLogger.debug(self, "Searching Team: #{team_name} using query: #{query} (#{counter} of #{count_of_team_areas}")
+            team_artifact_array =  find_by_query(query) 
+            RallyLogger.debug(self, "Found #{team_artifact_array.length} new items for #{team_name}")
+            artifact_array = artifact_array.concat(team_artifact_array)
           rescue Exception => ex
             raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
             raise UnrecoverableException.copy(ex,self)
@@ -412,7 +418,7 @@ module RallyEIF
         end
         
         #RallyLogger.debug(self, "Found #{artifact_array}")
-        RallyLogger.debug(self, "Found #{artifact_array.length} new #{@artifact_type}s in #{name()}.")
+        RallyLogger.info(self, "Found #{artifact_array.length} new #{@artifact_type}s in #{name()}.")
         return artifact_array
       end
       
@@ -432,8 +438,10 @@ module RallyEIF
            # query = "dc:modified>=12-01-2014T00:00:00"
            query = "#{base_query} and rtc_cm:teamArea=\"#{team_id}\""
           
-            RallyLogger.debug(self, " Searching updates in team: #{team_name} using query: #{query}")
-            artifact_array = artifact_array.concat(find_by_query(query))
+            RallyLogger.debug(self, " Searching for updates in team: #{team_name} using query: #{query}")
+            team_artifact_array = find_by_query(query)
+            RallyLogger.debug(self, "Found #{team_artifact_array.length} updated items for #{team_name}")
+            artifact_array = artifact_array.concat(team_artifact_array)
           rescue Exception => ex
             raise UnrecoverableException.new("Failed search using query: #{query}.  \n RTC api returned:#{ex.message}", self)
             raise UnrecoverableException.copy(ex,self)
