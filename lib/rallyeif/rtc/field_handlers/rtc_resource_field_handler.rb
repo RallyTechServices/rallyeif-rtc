@@ -22,17 +22,19 @@ module RallyEIF
         
         # from RTC, an artifact is just an ordinary hash
         def transform_out(artifact)
-         
           other_value = @connection.get_value(artifact,@field_name)
           if other_value.nil? || other_value.empty?
             return nil
           end
                     
-          if other_value[@referenced_field_lookup_id] 
-            if ( @field_name.to_s == "rtc_cm:release" || @field_name.to_s == "rtc_cm:iteration" ) && other_value[@referenced_field_lookup_id] == "Unassigned"
+          if !other_value[@referenced_field_lookup_id].nil?
+            string_value = other_value[@referenced_field_lookup_id]
+
+            if ( @field_name.to_s == "rtc_cm:release" || @field_name.to_s == "rtc_cm:plannedFor" ) && 
+              ( string_value == "Unassigned" || string_value == "Product Backlog" )
               return nil
             else
-              return other_value[@referenced_field_lookup_id]
+              return string_value
             end
           else
             return nil

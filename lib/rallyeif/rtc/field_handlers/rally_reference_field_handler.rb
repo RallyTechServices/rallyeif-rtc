@@ -65,7 +65,7 @@ module RallyEIF
           end
 
           if ref_string == nil
-            RallyLogger.warning(self,"Could not find Rally #{@field_name} with #{@referenced_field_lookup_id} - #{value}")
+            RallyLogger.warning(self,"Couldn't find Rally #{@field_name} with #{@referenced_field_lookup_id} - #{value}")
             # raise RecoverableException.new("Could not find Rally #{@field_name} with #{@referenced_field_lookup_id} - #{value}", self)
           end
           
